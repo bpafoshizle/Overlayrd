@@ -1,63 +1,53 @@
 function listenEvents() {
     const alertTimeout = 5000;
     const initialUrl = 'wss://eventsub-beta.wss.twitch.tv/ws';
-    const twitchSubscriptionUrl = 'https://api.twitch.tv/helix/eventsub/subscriptions';
+    let twitchUserName = 'bpafoshizle'; 
+    let eventTypes = ['channel.follow', 'channel.subscribe'];
     let ws;
-    let sessionId;
-    let keepAliveInterval;
-    let lastKeepAliveTimestamp;
+    let sessionId; // will be set after session_welcome
+    let keepAliveInterval; // will be set after session_welcome
+    let lastKeepAliveTimestamp; // set after session_keepalive or notification
     let reconnect = false;
 
     function connect(url=initialUrl, reconnect=false) {
         reconnect = reconnect;
         ws = new WebSocket(url);
+    }
+    connect();
+
+    async function subscribeToEvents() {
         if(!reconnect) {
-            subscribeToEvents()
+            const response = await fetch("/subscribe", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "types": eventTypes,
+                    "username": twitchUserName,
+                    "session_id": sessionId
+                })
+            });
+            console.log(response.json());
+        } else {
+            console.log('reconnect, skipping subscribe')
         }
     }
 
-    function subscribeToEvents() {
-        postData(twitchSubscriptionUrl, {
-            "type": "channel.follow",
-            "version": "1",
-            "condition": {
-                "broadcaster_user_id": `${broadcasterId}`
-            },
-            "transport": {
-                "method": "websocket",
-                "session_id": `${sessionId}`
-            }
-        })
-        .then(data => {
-            console.log(data);
-        });
-    }
-
-    async function postData(url = '', data = {}) {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Client-Id': `${clientId}`,
-                'Authoprization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify(data)
-        });
-        return response.json();
-    }
-
-    ws.onopen(() => {
+    ws.onopen = () => {
         console.log('connected to eventsub');
-    });
-    ws.onmessage(event => {
+    };
+    ws.onmessage = event => {
         const data = JSON.parse(event.data);
         if(data.metadata.message_type === 'session_welcome') {
             let payload = data.payload;
             sessionId = payload.session.id
+            console.log(`session id: ${sessionId}`)
             keepAliveInterval = payload.session.keepalive_timeout_seconds;
             subscribeToEvents();
         }
         else if(data.metadata.message_type === 'session_keepalive'){
+            console.log(`keepalive received. timestamp: ${data.metadata.message_timestamp}`)
             lastKeepAliveTimestamp = data.metadata.message_timestamp;
         }
         else if(data.metadata.message_type === 'session_reconnect') {
@@ -83,15 +73,13 @@ function listenEvents() {
                 eventAlertBox(username, alertImageId, textStyle, alertTimeout);
             }
         }
-    });
-    ws.onerror( error => {
+    };
+    ws.onerror = error => {
         console.log('error: ', error);
-    });
-    ws.onclose(() => {
+    };
+    ws.onclose = () => {
         console.log('disconnected from eventsub');
-    });
-
-    connect();
+    };
 }
 
 function eventAlertBox(username, alertImageId, textStyle, timeOut) {
