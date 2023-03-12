@@ -10,14 +10,13 @@ Plan is to leverage newer (still beta) WebSocket events capability of initially 
 WebSocket connection implemented on front end. Back end subscriptions implemented. Just need to generate events to test handling.
 
 To do:
-* Further testing of websockets with twitch cli or live events
-* Add ability to refresh user token via refresh token
-* Implement Oauth user token flow in React
+* Add ability to refresh user token via [refresh token](https://dev.twitch.tv/docs/authentication/refresh-tokens/)
 * Add sqllite to store state
 * Add react app to configure
   * Way to set up broadcaster and events to follow
   * Way to configure app client id and secret
   * Way to configure graphics and audio
+  * Implement Oauth user authorization code flow in React (done in simple html)
 
 
 * Tap into video and audio streams

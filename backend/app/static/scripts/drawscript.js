@@ -1,15 +1,19 @@
-function listenEvents() {
+function listenEvents(env) {
     const alertTimeout = 5000;
-    const initialUrl = 'wss://eventsub-beta.wss.twitch.tv/ws';
+    const localUrl = 'ws://localhost:8080/eventsub';
+    const prodUrl = 'wss://eventsub-beta.wss.twitch.tv/ws';
+    const initialUrl = ((env === 'DEV') ? localUrl: prodUrl);
     let twitchUserName = 'bpafoshizle'; 
     let eventTypes = ['channel.follow', 'channel.subscribe'];
     let ws;
+    let wsClosing;
     let sessionId; // will be set after session_welcome
     let keepAliveInterval; // will be set after session_welcome
     let lastKeepAliveTimestamp; // set after session_keepalive or notification
     let reconnect = false;
 
     function connect(url=initialUrl, reconnect=false) {
+        console.log(`connecting to ${url}`);
         reconnect = reconnect;
         ws = new WebSocket(url);
     }
@@ -44,16 +48,24 @@ function listenEvents() {
             sessionId = payload.session.id
             console.log(`session id: ${sessionId}`)
             keepAliveInterval = payload.session.keepalive_timeout_seconds;
-            subscribeToEvents();
+            if(reconnect) {
+                console.log('reconnect welcome recieved, skipping subscribe. closing old connection')
+                wsClosing.close()
+            } else {
+                subscribeToEvents();
+            }
+
         }
         else if(data.metadata.message_type === 'session_keepalive'){
             console.log(`keepalive received. timestamp: ${data.metadata.message_timestamp}`)
             lastKeepAliveTimestamp = data.metadata.message_timestamp;
         }
         else if(data.metadata.message_type === 'session_reconnect') {
-            console.log('reconnecting to eventsub');
-            ws.close();
-            connect(true, data.payload.reconnect_url);
+            console.log(`reconnecting to eventsub at ${data.payload.session.reconnect_url}`);
+            wsClosing = ws;
+            setTimeout(() => {
+                connect(data.payload.session.reconnect_url, true)
+            }, 1000);
         }
         else if(data.metadata.message_type === 'notification') {
             lastKeepAliveTimestamp = data.metadata.message_timestamp;
