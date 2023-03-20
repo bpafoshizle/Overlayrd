@@ -5,7 +5,7 @@
 		<script src="{{ url_for('static', path='/scripts/drawscript.js') }}"></script>
 		<link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
 	{# </head> #}
-	<body onload="listenEvents('{{ environment }}')">
+	<body onload="loopDrawAlert()">
 		<canvas id="bg-canvas" width="1920" height="1080">
 			Hello Socket Streamers!
 		</canvas>
@@ -14,7 +14,7 @@
 			<audio id="twitch-new-follower-audio" src="{{ url_for('static', path='/media/twitch_alert_new_follower_audio.mp3') }}" />
 			<img id="twitch-new-subscriber-img" src="{{ url_for('static', path='/media/twitch_alert_new_subscriber.png') }}"  data-audio-id="twitch-new-subscriber-audio" data-text-x-offset="0" data-text-y-offset="450" width="700" height="700"/>
 			<audio id="twitch-new-subscriber-audio" src="{{ url_for('static', path='/media/twitch_alert_new_subscriber_audio.mp3') }}" />
-			<img id="twitch-new-donation-img" src="{{ url_for('static', path='/media/twitch_alert_new_donation.png') }}" data-audio-id="twitch-new-donation-audio" data-text-x-offset="0" data-text-y-offset="400" width="700" height="700"/>
+			<img id="twitch-new-donation-img" src="{{ url_for('static', path='/media/twitch_alert_new_donation.jpg') }}" data-audio-id="twitch-new-donation-audio" data-text-x-offset="0" data-text-y-offset="400" width="700" height="700"/>
 			<audio id="twitch-new-donation-audio" src="{{ url_for('static', path='/media/twitch_alert_new_donation_audio.mp3') }}" />
 			<img id="twitch-first-time-chat-img" src="{{ url_for('static', path='/media/twitch_alert_first_time_chat.png') }}" data-audio-id="twitch-first-time-chat-audio" data-text-x-offset="0" data-text-y-offset="450" width="700" height="700"/>
 			<audio id="twitch-first-time-chat-audio" src="{{ url_for('static', path='/media/twitch_alert_first_time_chat_audio.mp3') }}" />

@@ -20,6 +20,8 @@
 </template>
   
 <script>
+import { useTheme } from 'vuetify'
+
 export default {
     data() {
         return {
@@ -286,17 +288,20 @@ export default {
         }
     },
 
-    mounted() {
+    mounted () {
         console.log(`Mounted Component OverlayCanvas`)
+        const theme = useTheme();
+        theme.global.name.value = 'overlayTheme';
         //this.listenEvents('PROD');
         this.loopDrawAlert();
-    }
+    },
+    
 }
 </script>
 
 <style>
 canvas {
     background: transparent;
-    /*border: 1px solid black;*/
+    border: 1px solid black;
 }
 </style>
