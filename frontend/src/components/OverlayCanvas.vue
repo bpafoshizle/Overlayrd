@@ -1,4 +1,6 @@
 <template>
+    <!-- <v-theme-provider theme="overlayTheme"> -->
+        <!-- <v-container theme="overlayTheme"> -->
     <canvas
         id="bg-canvas"
         :width="canvasWidth"
@@ -17,6 +19,8 @@
             :volume="alertTemplate.audioVolume" 
         />
     </div>
+        <!-- </v-container> -->
+    <!-- </v-theme-provider> -->
 </template>
   
 <script>
