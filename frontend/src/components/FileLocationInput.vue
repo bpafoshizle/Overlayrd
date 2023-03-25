@@ -12,7 +12,7 @@ export default {
       fileHandle: null
     }
   },
-  props:{
+  props: {
     buttonText: {
       type: String,
       default: 'Select File Location'

@@ -7,21 +7,20 @@
   
 <script>
 export default {
-  data() {
-    return {
-      directoryHandle: null
-    }
-  },
-  props:{
+  props: {
     buttonText: {
       type: String,
       default: 'Select Directory Location'
+    },
+    directoryHandle: {
+      type: Object,
+      default: null
     }
   },
   methods: {
     async selectDirectory() {
-      const handle = await window.showDirectoryPicker();
-      this.directoryHandle = handle;
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      this.$emit("directorySelected", handle);
     }
   }
 }
