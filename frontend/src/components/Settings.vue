@@ -10,10 +10,10 @@
             <v-expansion-panel-text>
               <directory-location-input v-model="directoryHandle" button-text="Choose Directory"
                 @directorySelected="directorySelected($event)" />
-              <v-chip v-if="directoryHandle" class="ma-2" color="green" text-color="white">
+              <v-chip v-if="directoryHandle" class="ma-2" color="primary" text-color="white">
                 Selected Directory: {{ directoryHandle.name }}
               </v-chip>
-              <v-chip v-if="settingsFileHandle" class="ma-2" color="green" text-color="white">
+              <v-chip v-if="settingsFileHandle" class="ma-2" color="primary" text-color="white">
                 Settings File: {{ settingsFileHandle.name }}
               </v-chip>
             </v-expansion-panel-text>
@@ -51,15 +51,14 @@
                 </v-row>
                 <v-row>
                   <v-col v-for="twitchEvent in settings.twitchEvents" :key="twitchEvent.value" cols="12" md="3">
-                    <v-checkbox v-model="twitchEvent.checked" :label="twitchEvent.text"
-                      :rules="twitchEventsRules"></v-checkbox>
+                    <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
+                      :value="twitchEvent.value" :rules="twitchEventsRules" />
                   </v-col>
                 </v-row>
               </v-container>
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-
         <v-btn color="#FFFFFF" type="submit" block class="mt-2">Submit</v-btn>
       </v-form>
     </v-card>
@@ -79,19 +78,22 @@ export default {
       valid: false,
       directoryHandle: null,
       settingsFileHandle: null,
+      imageFiles: [],
+      audioFiles: [],
       settings: {
         twitchClientId: '',
         twitchClientSecret: '',
         twitchBroadcasterName: '',
+        selectedTwitchEvents: ["channel.follow"],
         twitchEvents: [
-          { text: 'Follow', value: 'channel.follow', checked: true },
-          { text: 'Host', value: 'channel.host', checked: false },
-          { text: 'Subscription', value: 'channel.subscribe', checked: false },
-          { text: 'Resubscription', value: 'resubscription', checked: false },
-          { text: 'Gifted Subscription', value: 'channel.subscription.gift', checked: false },
-          { text: 'Raid', value: 'channel.raid', checked: false },
-          { text: 'Bits', value: 'channel.bits', checked: false },
-          { text: 'Channel Points', value: 'channel.channel_points_custom_reward_redemption.add', checked: false },
+          { text: 'Follow', value: 'channel.follow', checked: true, image: "", audio: "" },
+          { text: 'Host', value: 'channel.host', checked: false, image: "", audio: "" },
+          { text: 'Subscription', value: 'channel.subscribe', checked: false, image: "", audio: "" },
+          { text: 'Resubscription', value: 'resubscription', checked: false, image: "", audio: "" },
+          { text: 'Gifted Subscription', value: 'channel.subscription.gift', checked: false, image: "", audio: "" },
+          { text: 'Raid', value: 'channel.raid', checked: false, image: "", audio: "" },
+          { text: 'Bits', value: 'channel.bits', checked: false, image: "", audio: "" },
+          { text: 'Channel Points', value: 'channel.channel_points_custom_reward_redemption.add', checked: false, image: "", audio: "" },
         ],
       },
       twitchClientIdRules: [
@@ -133,18 +135,25 @@ export default {
       ],
       twitchEventsRules: [
         value => {
-          if (value || this.settings.twitchEvents.some((value) => value.checked)) return true
+          //if (value || this.settings.twitchEvents.some((value) => value.checked)) return true
+          if (this.settings.selectedTwitchEvents.length > 0) return true
           return 'Please select at least one event.'
         }
       ]
     }
   },
 
-  // computed: {
-  //   atLeastOneTwitchEventChecked() {
-  //     return [this.twitchEvents.some((value) => value.checked) || 'Please select at least one event']
-  //   }
-  // },
+  watch: {
+    'settings.selectedTwitchEvents': function (val, oldVal) {
+      this.settings.twitchEvents.forEach((twitchEvent) => {
+        if (val.includes(twitchEvent.value)) {
+          twitchEvent.checked = true
+        } else {
+          twitchEvent.checked = false
+        }
+      })
+    }
+  },
 
   methods: {
     async submit(event) {
@@ -155,7 +164,22 @@ export default {
     async directorySelected(handle) {
       this.directoryHandle = handle
       this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
-      this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+      try {
+        this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+      } catch (e) {
+        console.log(e)
+      }
+      for await (const entry of this.directoryHandle.values()) {
+        if (entry.kind === 'file') {
+          const extension = entry.name.slice(-4); // get last 4 characters of the filename
+          if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
+            this.imageFiles.push(entry);
+          } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
+            this.audioFiles.push(entry);
+          }
+          //console.log(entry.kind, entry.name);
+        }
+      }
     },
     async writeFile(fileHandle, contents) {
       // Create a FileSystemWritableFileStream to write to.
