@@ -49,10 +49,21 @@
                   <v-text-field v-model="settings.twitchBroadcasterName" :rules="twitchBroadcasterNameRules" :counter="25"
                     label="Twitch Broadcaster Name" required></v-text-field>
                 </v-row>
-                <v-row>
+                <!-- <v-row>
                   <v-col v-for="twitchEvent in settings.twitchEvents" :key="twitchEvent.value" cols="12" md="3">
                     <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
                       :value="twitchEvent.value" :rules="twitchEventsRules" />
+                  </v-col>
+                </v-row> -->
+                <v-row v-for="twitchEvent in settings.twitchEvents" :key="twitchEvent.value">
+                  <v-col cols="12" md="6">
+                    <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
+                      :value="twitchEvent.value" :rules="twitchEventsRules" />
+                  </v-col>
+                  <v-divider inset vertical></v-divider>
+                  <v-col cols="12" md="6" v-if="twitchEvent.checked">
+                    <v-select variant="underlined" label="Image" :items="getImageNames()" color="primary" />
+                    <v-select variant="underlined" label="Audio" :items="getAudioNames()" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
@@ -188,7 +199,13 @@ export default {
       await writable.write(contents);
       // Close the file and write the contents to disk.
       await writable.close();
-    }
+    },
+    getImageNames() {
+      return this.imageFiles.map((imageFile) => imageFile.name);
+    },
+    getAudioNames() {
+      return this.audioFiles.map((audioFile) => audioFile.name);
+    },
     // atLeastOneChecked() {
     //   return this.twitchEvents.some((value) => value.checked) || 'Please select at least one event'
     // }
