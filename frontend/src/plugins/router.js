@@ -4,28 +4,42 @@ import OverlayCanvas from '@/components/OverlayCanvas.vue'
 import Settings from '@/components/Settings.vue'
 import Positioning from '@/components/Positioning.vue'
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
       path: '/',
       name: "home",
       component: Home,
+      meta: {
+        showNav: true, // this route should show the navigation toolbar
+      }
     },
     {
       path: '/overlay',
       name: "overlay",
-      component: OverlayCanvas
+      component: OverlayCanvas,
+      meta: {
+        showNavOnHover: true, // this route should hide the navigation toolbar until mouse hover
+      }
     },
     {
       path: '/settings',
       name: "settings",
-      component : Settings
+      component : Settings,
+      meta: {
+        showNav: true, // this route should show the navigation toolbar
+      }
     },
     {
       path: '/positioning',
       name: "positioning",
-      component : Positioning
+      component : Positioning,
+      meta: {
+        showNav: true, // this route should show the navigation toolbar
+      }
     }
   ]
 })
+
+export default router

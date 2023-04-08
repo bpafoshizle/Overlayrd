@@ -1,94 +1,42 @@
 <template>
-  <!-- <v-theme-provider theme="overlayTheme"> -->
-  <!-- <v-container theme="overlayTheme"> -->
-  <canvas id="bg-canvas" :width="canvasWidth" :height="canvasHeight"></canvas>
+  <canvas id="bg-canvas" :width="settings.canvasWidth" :height="settings.canvasHeight"></canvas>
   <div style="display:none;">
-    <img v-for="alertTemplate in alertTemplates" :id="alertTemplate.imageId"
-      :src="'/src/media/' + alertTemplate.imageFile" :width="alertTemplate.imageWidth"
-      :height="alertTemplate.imageHeight" />
-    <audio v-for="alertTemplate in alertTemplates" :id="alertTemplate.audioId"
-      :src="'/src/media/' + alertTemplate.audioFile" :volume="alertTemplate.audioVolume" />
+    <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
+      :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
+    <audio v-for="twitchEvent in checkedEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
+      :volume="twitchEvent.audioVolume" />
   </div>
-  <!-- </v-container> -->
-  <!-- </v-theme-provider> -->
 </template>
   
 <script>
 import { useTheme } from 'vuetify'
+import { mapState } from 'pinia'
+import { useSettingsStore } from '../stores/settings'
 
 export default {
   data() {
     return {
-      canvasWidth: '1920',
-      canvasHeight: '1080',
-      color: 'black',
       alertList: [
-        ['HNDR', 'twitchNewFollower'],
-        ['EGriZZ', 'twitchNewSubscriber'],
-        ['NotLilBear', 'twitchFirstTimeChat'],
-        ['KuHouse', 'twitchNewDonation']
+        ['HNDR', 'twitchFollower'],
+        ['KuHouse', 'twitchSubscription'],
       ],
-      alertTemplates: {
-        twitchNewFollower: {
-          imageFile: 'twitch_alert_new_follower.png',
-          textXOffset: 0,
-          textYOffset: 450,
-          audioId: 'twitch-new-follower-audio',
-          audioFile: 'twitch_alert_new_follower_audio.mp3',
-          audioVolume: 0.5,
-          imageId: 'twitch-new-follower-img',
-          imageWidth: 700,
-          imageHeight: 700,
-          textColor: '#6441a4',
-        },
-        twitchNewSubscriber: {
-          imageFile: 'twitch_alert_new_subscriber.png',
-          textXOffset: 0,
-          textYOffset: 450,
-          audioId: 'twitch-new-subscriber-audio',
-          audioFile: 'twitch_alert_new_subscriber_audio.mp3',
-          audioVolume: 0.5,
-          imageId: 'twitch-new-subscriber-img',
-          imageWidth: 700,
-          imageHeight: 700,
-          textColor: '#6441a4',
-        },
-        twitchFirstTimeChat: {
-          imageFile: 'twitch_alert_first_time_chat.png',
-          textXOffset: 0,
-          textYOffset: 450,
-          audioId: 'twitch-first-time-chat-audio',
-          audioFile: 'twitch_alert_first_time_chat_audio.mp3',
-          audioVolume: 0.5,
-          imageId: 'twitch-first-time-chat-img',
-          imageWidth: 700,
-          imageHeight: 700,
-          textColor: '#6441a4',
-        },
-        twitchNewDonation: {
-          imageFile: 'twitch_alert_new_donation.jpg',
-          textXOffset: 0,
-          textYOffset: 400,
-          audioId: 'twitch-new-donation-audio',
-          audioFile: 'twitch_alert_new_donation_audio.mp3',
-          audioVolume: 0.5,
-          imageId: 'twitch-new-donation-img',
-          imageWidth: 700,
-          imageHeight: 700,
-          textColor: '#c0ffa9',
-        }
-      }
+      checkedEvents: []
     }
+  },
+
+  computed: {
+    // gives access to settings inside the component
+    ...mapState(useSettingsStore, ['settings']),
   },
 
   methods: {
     listenEvents(env) {
       const alertTimeout = 5000;
-      const localUrl = 'ws://localhost:8080/eventsub';
-      const prodUrl = 'wss://eventsub-beta.wss.twitch.tv/ws';
+      const localUrl = this.settings.localUrl;
+      const prodUrl = this.settings.prodUrl;
       const initialUrl = ((env === 'DEV') ? localUrl : prodUrl);
-      let twitchUserName = 'bpafoshizle';
-      let eventTypes = ['channel.follow', 'channel.subscribe'];
+      let twitchUserName = this.settings.twitchBroadcasterName;
+      let eventTypes = this.settings.selectedTwitchEvents;
       let ws;
       let wsClosing;
       let sessionId; // will be set after session_welcome
@@ -158,11 +106,11 @@ export default {
           let username = payload.event.broadcaster_user_name;
           let alertTemplate = null;
           if (eventType === 'channel.follow') {
-            alertTemplate = 'twitchNewFollower';
+            alertTemplate = 'twitchFollower';
             this.eventAlertBox(username, alertTemplate, alertTimeout);
           }
           else if (eventType === 'channel.subscribe') {
-            alertTemplate = 'twitchNewSubscriber';
+            alertTemplate = 'twitchSubscription';
             this.eventAlertBox(username, alertTemplate, alertTimeout);
           }
         }
@@ -192,10 +140,12 @@ export default {
           textWidth: ctx.measureText(username).width,
           alertAudioId: alertTemplate.audioId
         }
-        console.log(props);
+        //console.log(props);
         return props;
       }
-      const alertTemplate = this.alertTemplates[alertTemplateName];
+      const alertTemplate = this.settings.twitchEvents.find(
+        (event) => event.id === alertTemplateName
+      );
       const {
         imgStartX,
         imgStartY,
@@ -267,10 +217,10 @@ export default {
 
 
       let drawAlert = () => {
-        console.log(this)
+        //console.log(this)
         this.eventAlertBox(this.alertList[alertIndex][0], this.alertList[alertIndex][1], timeOut);
         alertIndex = (alertIndex + 1) % this.alertList.length;
-        setTimeout(drawAlert, timeOut)
+        setTimeout(drawAlert, timeOut);
       }
       drawAlert();
     },
@@ -280,6 +230,17 @@ export default {
       let alertIndex = 0;
       this.eventAlertBox(this.alertList[alertIndex][0], this.alertList[alertIndex][1], timeOut);
     }
+  },
+
+  async created() {
+    console.log(`Created Component OverlayCanvas`);
+    this.checkedEvents = this.settings.twitchEvents.filter((twitchEvent) => twitchEvent.checked);
+    this.checkedEvents.forEach(async (twitchEvent) => {
+      twitchEvent.imageFile = URL.createObjectURL(await twitchEvent.imageFileHandle.getFile());
+      twitchEvent.audioFile = URL.createObjectURL(await twitchEvent.audioFileHandle.getFile());
+    });
+
+
   },
 
   mounted() {

@@ -30,7 +30,7 @@ const mainTheme = {
 const overlayTheme = {
   dark: false,
   colors: {
-    background: '#FFFFFF',
+    'background-color': '#00000000',
     error: '#B00020',
     info: '#2196F3',
     success: '#4CAF50',

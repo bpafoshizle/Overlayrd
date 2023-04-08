@@ -55,15 +55,17 @@
                       :value="twitchEvent.value" :rules="twitchEventsRules" />
                   </v-col>
                 </v-row> -->
-                <v-row v-for="twitchEvent in settings.twitchEvents" :key="twitchEvent.value">
+                <v-row v-for="(twitchEvent, i) in settings.twitchEvents" :key="twitchEvent.value">
                   <v-col cols="12" md="6">
                     <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
                       :value="twitchEvent.value" :rules="twitchEventsRules" />
                   </v-col>
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
-                    <v-select variant="underlined" label="Image" :items="getImageNames()" color="primary" />
-                    <v-select variant="underlined" label="Audio" :items="getAudioNames()" color="primary" />
+                    <v-select variant="underlined" label="Image" :items="imageFiles" item-title="name"
+                      v-model="settings.twitchEvents[i].imageName" color="primary" />
+                    <v-select variant="underlined" label="Audio" :items="audioFiles" item-title="name"
+                      v-model="settings.twitchEvents[i].audioName" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
@@ -79,6 +81,8 @@
 <script>
 import { useTheme } from 'vuetify'
 import DirectoryLocationInput from './DirectoryLocationInput.vue'
+import { mapWritableState } from 'pinia'
+import { useSettingsStore } from '../stores/settings'
 
 export default {
   components: {
@@ -89,24 +93,6 @@ export default {
       valid: false,
       directoryHandle: null,
       settingsFileHandle: null,
-      imageFiles: [],
-      audioFiles: [],
-      settings: {
-        twitchClientId: '',
-        twitchClientSecret: '',
-        twitchBroadcasterName: '',
-        selectedTwitchEvents: ["channel.follow"],
-        twitchEvents: [
-          { text: 'Follow', value: 'channel.follow', checked: true, image: "", audio: "" },
-          { text: 'Host', value: 'channel.host', checked: false, image: "", audio: "" },
-          { text: 'Subscription', value: 'channel.subscribe', checked: false, image: "", audio: "" },
-          { text: 'Resubscription', value: 'resubscription', checked: false, image: "", audio: "" },
-          { text: 'Gifted Subscription', value: 'channel.subscription.gift', checked: false, image: "", audio: "" },
-          { text: 'Raid', value: 'channel.raid', checked: false, image: "", audio: "" },
-          { text: 'Bits', value: 'channel.bits', checked: false, image: "", audio: "" },
-          { text: 'Channel Points', value: 'channel.channel_points_custom_reward_redemption.add', checked: false, image: "", audio: "" },
-        ],
-      },
       twitchClientIdRules: [
         value => {
           if (value) return true
@@ -119,7 +105,6 @@ export default {
           return 'Twitch Client ID must be 30 characters.'
         },
       ],
-      twitchClientSecret: '',
       twitchClientSecretRules: [
         value => {
           if (value) return true
@@ -163,7 +148,14 @@ export default {
           twitchEvent.checked = false
         }
       })
-    }
+    },
+  },
+
+  computed: {
+    // gives access to this.settings inside the component and allows setting it
+    ...mapWritableState(useSettingsStore, ['settings']),
+    ...mapWritableState(useSettingsStore, ['imageFiles']),
+    ...mapWritableState(useSettingsStore, ['audioFiles'])
   },
 
   methods: {
@@ -172,14 +164,11 @@ export default {
       alert(JSON.stringify(results, null, 2))
       this.writeFile(this.settingsFileHandle, JSON.stringify(this.settings, null, 2))
     },
+
     async directorySelected(handle) {
       this.directoryHandle = handle
-      this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
-      try {
-        this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-      } catch (e) {
-        console.log(e)
-      }
+
+      // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
           const extension = entry.name.slice(-4); // get last 4 characters of the filename
@@ -188,10 +177,22 @@ export default {
           } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
             this.audioFiles.push(entry);
           }
-          //console.log(entry.kind, entry.name);
         }
       }
+
+      // Set up the settings file
+      this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
+      try {
+        this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+        this.settings.twitchEvents.forEach((twitchEvent) => {
+          twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
+          twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
+        })
+      } catch (e) {
+        console.log(e)
+      }
     },
+
     async writeFile(fileHandle, contents) {
       // Create a FileSystemWritableFileStream to write to.
       const writable = await fileHandle.createWritable();
