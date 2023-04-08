@@ -17,8 +17,7 @@
         </v-col>
 
         <v-col cols="auto">
-          <v-btn color="primary" href="/overlay" min-width="228" rel="noopener noreferrer" size="x-large" target="_blank"
-            variant="flat">
+          <v-btn color="primary" href="/overlay" min-width="228" rel="noopener noreferrer" size="x-large" variant="flat">
             <v-icon icon="mdi-rocket" size="large" start />
 
             Launch Overlay
@@ -26,7 +25,7 @@
         </v-col>
 
         <v-col cols="auto">
-          <v-btn href="/positioning" min-width="164" rel="noopener noreferrer" target="_blank" variant="text">
+          <v-btn href="/positioning" min-width="164" rel="noopener noreferrer" variant="text">
             <v-icon icon="mdi-view-dashboard" size="large" start />
 
             Positioning

@@ -29,13 +29,7 @@ const mainTheme = {
 
 const overlayTheme = {
   dark: false,
-  colors: {
-    'background-color': '#00000000',
-    error: '#B00020',
-    info: '#2196F3',
-    success: '#4CAF50',
-    warning: '#FB8C00',
-  }
+  background: 'none'
 }
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides

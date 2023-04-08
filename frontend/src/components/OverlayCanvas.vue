@@ -256,7 +256,6 @@ export default {
 
 <style>
 canvas {
-  background: transparent;
   border: 1px solid black;
 }
 </style>
