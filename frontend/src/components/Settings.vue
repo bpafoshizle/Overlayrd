@@ -171,25 +171,36 @@ export default {
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
+          if (entry.name === 'settings.json') {
+            // Set up the settings file
+            this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json');
+
+            const permitted = await this.verifyPermission(this.settingsFileHandle)
+            if (permitted) {
+              this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+              this.settings.twitchEvents.forEach((twitchEvent) => {
+                twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
+                twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
+              })
+            }
+            continue
+          }
           const extension = entry.name.slice(-4); // get last 4 characters of the filename
           if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-            this.imageFiles.push(entry);
+            this.pushIfNotExists(this.imageFiles, entry, 'name')
           } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-            this.audioFiles.push(entry);
+            this.pushIfNotExists(this.audioFiles, entry, 'name')
           }
         }
       }
+      if (!this.settingsFileHandle) {
+        this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
+      }
+    },
 
-      // Set up the settings file
-      this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
-      try {
-        this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-        this.settings.twitchEvents.forEach((twitchEvent) => {
-          twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
-          twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
-        })
-      } catch (e) {
-        console.log(e)
+    pushIfNotExists(array, object, property) {
+      if (!array.some((e) => e[property] === object[property])) {
+        array.push(object)
       }
     },
 
@@ -206,6 +217,23 @@ export default {
     },
     getAudioNames() {
       return this.audioFiles.map((audioFile) => audioFile.name);
+    },
+    async verifyPermission(fileHandle, readWrite) {
+      console.log('hello ladies');
+      const options = {};
+      if (readWrite) {
+        options.mode = 'readwrite';
+      }
+      // Check if permission was already granted. If so, return true.
+      if ((await fileHandle.queryPermission(options)) === 'granted') {
+        return true;
+      }
+      // Request permission. If the user grants permission, return true.
+      if ((await fileHandle.requestPermission(options)) === 'granted') {
+        return true;
+      }
+      // The user didn't grant permission, so return false.
+      return false;
     },
     // atLeastOneChecked() {
     //   return this.twitchEvents.some((value) => value.checked) || 'Please select at least one event'

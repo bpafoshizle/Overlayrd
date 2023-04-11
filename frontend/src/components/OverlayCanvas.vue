@@ -1,10 +1,12 @@
 <template>
-  <canvas id="bg-canvas" :width="settings.canvasWidth" :height="settings.canvasHeight"></canvas>
-  <div style="display:none;">
-    <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
-      :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
-    <audio v-for="twitchEvent in checkedEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
-      :volume="twitchEvent.audioVolume" />
+  <div id="overlay">
+    <canvas id="bg-canvas" :width="settings.canvasWidth" :height="settings.canvasHeight" background="none"></canvas>
+    <div style="display:none;">
+      <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
+        :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
+      <audio v-for="twitchEvent in checkedEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
+        :volume="twitchEvent.audioVolume" />
+    </div>
   </div>
 </template>
   
@@ -255,6 +257,11 @@ export default {
 </script>
 
 <style>
+#overlay {
+  background: none;
+  background-color: rgba(0, 0, 0, 0);
+}
+
 canvas {
   border: 1px solid black;
 }
