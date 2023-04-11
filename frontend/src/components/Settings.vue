@@ -178,23 +178,28 @@ export default {
             const permitted = await this.verifyPermission(this.settingsFileHandle)
             if (permitted) {
               this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-              this.settings.twitchEvents.forEach((twitchEvent) => {
-                twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
-                twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
-              })
             }
-            continue
+            continue;
           }
-          const extension = entry.name.slice(-4); // get last 4 characters of the filename
-          if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-            this.pushIfNotExists(this.imageFiles, entry, 'name')
-          } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-            this.pushIfNotExists(this.audioFiles, entry, 'name')
+          else {
+            const extension = entry.name.slice(-4); // get last 4 characters of the filename
+            if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
+              this.pushIfNotExists(this.imageFiles, entry, 'name')
+            } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
+              this.pushIfNotExists(this.audioFiles, entry, 'name')
+            }
           }
         }
       }
+
       if (!this.settingsFileHandle) {
         this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
+      }
+      else {
+        this.settings.twitchEvents.forEach((twitchEvent) => {
+          twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
+          twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
+        })
       }
     },
 

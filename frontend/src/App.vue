@@ -1,5 +1,5 @@
 <template>
-  <v-app background="none">
+  <v-app>
     <v-navigation-drawer v-if="showNav" location="top" v-model="drawer" temporary color="primary">
       <v-list>
         <v-list-item v-for="item in menuItems" :key="item.title" :to="item.path">
@@ -27,7 +27,7 @@
         </v-btn>
       </v-toolbar-items>
     </v-toolbar>
-    <v-main background="none">
+    <v-main>
       <router-view></router-view>
     </v-main>
   </v-app>
