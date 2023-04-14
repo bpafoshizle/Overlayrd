@@ -1,6 +1,6 @@
 <template>
-  <div id="overlay">
-    <canvas id="bg-canvas" :width="settings.canvasWidth" :height="settings.canvasHeight" background="none"></canvas>
+  <div id="overlayid">
+    <canvas id="bgcanvasid" :width="settings.canvasWidth" :height="settings.canvasHeight" background="none"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
         :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
@@ -127,7 +127,7 @@ export default {
 
     eventAlertBox(username, alertTemplateName, timeOut) {
       function calculateImgPlacement() {
-        const canvas = document.querySelector('#bg-canvas');
+        const canvas = document.querySelector('#bgcanvasid');
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = alertTemplate.textColor;
         ctx.font = '56px Monaco';
@@ -174,7 +174,7 @@ export default {
       audio.play();
 
       function draw() {
-        const canvas = document.querySelector('#bg-canvas');
+        const canvas = document.querySelector('#bgcanvasid');
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = alpha;
@@ -249,7 +249,7 @@ export default {
     console.log(`Mounted Component OverlayCanvas`)
     const theme = useTheme();
     theme.global.name.value = 'overlayTheme';
-    //this.listenEvents('PROD');
+    // this.listenEvents('PROD');
     this.loopDrawAlert();
   },
 
@@ -257,12 +257,55 @@ export default {
 </script>
 
 <style>
-#overlay {
-  background: none;
-  background-color: rgba(0, 0, 0, 0);
+/* .v-application__wrap {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+} */
+
+.v-theme--overlayTheme {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
 }
+
+/* .v-main {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+} */
+
+#overlayid {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+
+#bgcanvasid {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+/* #routerviewid {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+} */
+
+/* #vmainid {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+} */
+
+/* #vappid {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+} */
 
 canvas {
   border: 1px solid black;
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
 }
+
+/* div {
+  background: none !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+} */
 </style>

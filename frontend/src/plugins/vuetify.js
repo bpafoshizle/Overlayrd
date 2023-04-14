@@ -29,7 +29,10 @@ const mainTheme = {
 
 const overlayTheme = {
   dark: false,
-  background: 'transparent',
+  background: '#FFFFFF00',
+  colors:{
+    background: '#FFFFFF00',
+  }
 }
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
