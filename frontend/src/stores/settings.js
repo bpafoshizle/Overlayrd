@@ -10,6 +10,9 @@ export const useSettingsStore = defineStore('settings', {
             twitchClientId: '',
             twitchClientSecret: '',
             twitchBroadcasterName: '',
+            backendUrl: 'http://localhost:8000',
+            twitchWSLocalUrl: 'ws://localhost:8080/eventsub',
+            twitchWSProdUrl: 'wss://eventsub-beta.wss.twitch.tv/ws',
             selectedTwitchEvents: ["channel.follow"],
             twitchEvents: [
                 {

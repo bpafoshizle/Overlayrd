@@ -130,7 +130,7 @@ async def auth_twitch_callback(
         print(f"code: {code} scope: {scope} state: {state}")
         twitch_user_access_token = await get_twitch_user_access_token(code)
     
-    response = RedirectResponse(url='/index.html')
+    response = RedirectResponse(url='http://localhost:3000/settings')
     return response
 
 ### TWITCH HELPER FUNCTIONS ###

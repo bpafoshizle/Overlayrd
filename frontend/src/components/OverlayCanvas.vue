@@ -1,5 +1,5 @@
 <template>
-  <div id="overlayid">
+  <div>
     <canvas id="bgcanvasid" :width="settings.canvasWidth" :height="settings.canvasHeight" background="none"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
@@ -34,8 +34,8 @@ export default {
   methods: {
     listenEvents(env) {
       const alertTimeout = 5000;
-      const localUrl = this.settings.localUrl;
-      const prodUrl = this.settings.prodUrl;
+      const localUrl = this.settings.twitchWSLocalUrl;
+      const prodUrl = this.settings.twitchWSProdUrl;
       const initialUrl = ((env === 'DEV') ? localUrl : prodUrl);
       let twitchUserName = this.settings.twitchBroadcasterName;
       let eventTypes = this.settings.selectedTwitchEvents;
@@ -55,7 +55,7 @@ export default {
 
       async function subscribeToEvents() {
         if (!reconnect) {
-          const response = await fetch("/subscribe", {
+          const response = await fetch(`${this.settings.backendUrl}/subscribe`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -249,63 +249,16 @@ export default {
     console.log(`Mounted Component OverlayCanvas`)
     const theme = useTheme();
     theme.global.name.value = 'overlayTheme';
-    // this.listenEvents('PROD');
-    this.loopDrawAlert();
+    this.listenEvents('PROD');
+    //this.loopDrawAlert();
   },
 
 }
 </script>
 
 <style>
-/* .v-application__wrap {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-} */
-
 .v-theme--overlayTheme {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
+  background: none;
+  background-color: rgba(0, 0, 0, 0);
 }
-
-/* .v-main {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-} */
-
-#overlayid {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-}
-
-
-#bgcanvasid {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-}
-
-/* #routerviewid {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-} */
-
-/* #vmainid {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-} */
-
-/* #vappid {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-} */
-
-canvas {
-  border: 1px solid black;
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-}
-
-/* div {
-  background: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
-} */
 </style>

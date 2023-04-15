@@ -72,7 +72,14 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-        <v-btn color="#FFFFFF" type="submit" block class="mt-2">Submit</v-btn>
+        <v-row>
+          <v-col>
+            <v-btn color="#FFFFFF" type="submit" block class="mt-2">Save</v-btn>
+          </v-col>
+          <v-col>
+            <v-btn color="#FFFFFF" type="submit" block class="mt-2" @click="authorizeApp">Authorize Twitch</v-btn>
+          </v-col>
+        </v-row>
       </v-form>
     </v-card>
   </v-responsive>
@@ -161,9 +168,21 @@ export default {
   methods: {
     async submit(event) {
       const results = await event
-      alert(JSON.stringify(results, null, 2))
+      // alert(JSON.stringify(results, null, 2))
       this.writeFile(this.settingsFileHandle, JSON.stringify(this.settings, null, 2))
     },
+
+    async authorizeApp(event) {
+      const results = await event
+      // alert(JSON.stringify(results, null, 2))
+      window.location.href = 'https://id.twitch.tv/oauth2/authorize?' +
+        'response_type=code' +
+        `&client_id=${encodeURIComponent(this.settings.twitchClientId)}` +
+        `&redirect_uri=${encodeURIComponent(this.settings.backendUrl)}/auth/twitch/callback` +
+        `&scope=${encodeURIComponent('moderator:read:followers channel:read:subscriptions')}` +
+        `&state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))}`;
+    },
+
 
     async directorySelected(handle) {
       this.directoryHandle = handle
