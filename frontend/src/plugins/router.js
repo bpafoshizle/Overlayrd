@@ -3,6 +3,7 @@ import Home from '@/components/Home.vue'
 import OverlayCanvas from '@/components/OverlayCanvas.vue'
 import Settings from '@/components/Settings.vue'
 import Positioning from '@/components/Positioning.vue'
+import TwitchCallback from '@/components/TwitchCallback.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -29,6 +30,14 @@ const router = createRouter({
       component : Settings,
       meta: {
         showNav: true, // this route should show the navigation toolbar
+      }
+    },
+    {
+      path: '/auth/twitch/callback',
+      name: "twitch-callback",
+      component : TwitchCallback,
+      meta: {
+        showNav: false, // this route should show the navigation toolbar
       }
     },
     {

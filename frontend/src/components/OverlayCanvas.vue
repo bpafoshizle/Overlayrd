@@ -12,7 +12,7 @@
   
 <script>
 import { useTheme } from 'vuetify'
-import { mapState } from 'pinia'
+import { mapWritableState } from 'pinia'
 import { useSettingsStore } from '../stores/settings'
 
 export default {
@@ -28,10 +28,44 @@ export default {
 
   computed: {
     // gives access to settings inside the component
-    ...mapState(useSettingsStore, ['settings']),
+    ...mapWritableState(useSettingsStore, ['settings']),
   },
 
   methods: {
+    async getTwitchAppAccessToken() {
+      fetch(`${this.settings.twitchHelixUrl}/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: {
+          'client_id': this.settings.twitchClientId,
+          'client_secret': this.settings.twitchClientSecret,
+          'grant_type': 'client_credentials'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          this.settings.twitchAppAccessToken = data.access_token;
+          console.log(`app access token: ${this.settings.twitchAppAccessToken}`);
+        });
+    },
+    async getTwitchBroadcasterID() {
+      fetch(`${this.settings.twitchHelixUrl}/users?login=${this.settings.twitchBroadcasterName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Client-Id': this.settings.twitchClientId,
+          'Authorization': `Bearer ${this.settings.twitchAppAccessToken}`
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          this.settings.twitchBroadcasterID = data.data[0].id;
+          console.log(`broadcaster id: ${this.settings.twitchBroadcasterID}`);
+        });
+    },
+
     listenEvents(env) {
       const alertTimeout = 5000;
       const localUrl = this.settings.twitchWSLocalUrl;
@@ -55,23 +89,35 @@ export default {
 
       async function subscribeToEvents() {
         if (!reconnect) {
-          const response = await fetch(`${this.settings.backendUrl}/subscribe`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              "types": eventTypes,
-              "username": twitchUserName,
-              "session_id": sessionId
-            })
+          await this.getTwitchAppAccessToken();
+          await this.getTwitchBroadcasterID();
+          this.settings.getCheckedTwitchEvents.forEach(async twitchEvent => {
+            const response = await fetch(`${this.settings.twitchHelixUrl}/eventsub/subscriptions`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Id': this.settings.twitchClientId,
+                'Authorization': `Bearer ${this.settings.twitchUserAccessToken}`
+              },
+              body: JSON.stringify({
+                'type': twitchEvent.value,
+                'version': twitchEvent.version,
+                'condition': {
+                  'broadcaster_user_id': this.settings.twitchBroadcasterID,
+                  'moderator_user_id': this.settings.twitchBroadcasterID
+                },
+                'transport': {
+                  'method': 'websocket',
+                  'session_id': sessionId
+                }
+              })
+            });
+            console.log(response.json());
           });
-          console.log(response.json());
         } else {
           console.log('reconnect, skipping subscribe')
         }
       }
-
       ws.onopen = () => {
         console.log('connected to eventsub');
       };

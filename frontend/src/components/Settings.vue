@@ -49,12 +49,6 @@
                   <v-text-field v-model="settings.twitchBroadcasterName" :rules="twitchBroadcasterNameRules" :counter="25"
                     label="Twitch Broadcaster Name" required></v-text-field>
                 </v-row>
-                <!-- <v-row>
-                  <v-col v-for="twitchEvent in settings.twitchEvents" :key="twitchEvent.value" cols="12" md="3">
-                    <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
-                      :value="twitchEvent.value" :rules="twitchEventsRules" />
-                  </v-col>
-                </v-row> -->
                 <v-row v-for="(twitchEvent, i) in settings.twitchEvents" :key="twitchEvent.value">
                   <v-col cols="12" md="6">
                     <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
@@ -74,10 +68,10 @@
         </v-expansion-panels>
         <v-row>
           <v-col>
-            <v-btn color="#FFFFFF" type="submit" block class="mt-2">Save</v-btn>
+            <v-btn color="primary" type="submit" block class="mt-2">Save</v-btn>
           </v-col>
           <v-col>
-            <v-btn color="#FFFFFF" type="submit" block class="mt-2" @click="authorizeApp">Authorize Twitch</v-btn>
+            <v-btn color="primary" type="submit" block class="mt-2" @click="authorizeApp">Authorize Twitch</v-btn>
           </v-col>
         </v-row>
       </v-form>
@@ -98,8 +92,6 @@ export default {
   data() {
     return {
       valid: false,
-      directoryHandle: null,
-      settingsFileHandle: null,
       twitchClientIdRules: [
         value => {
           if (value) return true
@@ -162,7 +154,9 @@ export default {
     // gives access to this.settings inside the component and allows setting it
     ...mapWritableState(useSettingsStore, ['settings']),
     ...mapWritableState(useSettingsStore, ['imageFiles']),
-    ...mapWritableState(useSettingsStore, ['audioFiles'])
+    ...mapWritableState(useSettingsStore, ['audioFiles']),
+    ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
+    ...mapWritableState(useSettingsStore, ['directoryHandle']),
   },
 
   methods: {
@@ -176,11 +170,11 @@ export default {
       const results = await event
       // alert(JSON.stringify(results, null, 2))
       window.location.href = 'https://id.twitch.tv/oauth2/authorize?' +
-        'response_type=code' +
+        'response_type=token' +
         `&client_id=${encodeURIComponent(this.settings.twitchClientId)}` +
-        `&redirect_uri=${encodeURIComponent(this.settings.backendUrl)}/auth/twitch/callback` +
-        `&scope=${encodeURIComponent('moderator:read:followers channel:read:subscriptions')}` +
-        `&state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))}`;
+        `&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/twitch/callback')}` +
+        `& scope=${encodeURIComponent('moderator:read:followers channel:read:subscriptions')} ` +
+        `& state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))} `;
     },
 
 
@@ -243,7 +237,6 @@ export default {
       return this.audioFiles.map((audioFile) => audioFile.name);
     },
     async verifyPermission(fileHandle, readWrite) {
-      console.log('hello ladies');
       const options = {};
       if (readWrite) {
         options.mode = 'readwrite';
@@ -258,10 +251,7 @@ export default {
       }
       // The user didn't grant permission, so return false.
       return false;
-    },
-    // atLeastOneChecked() {
-    //   return this.twitchEvents.some((value) => value.checked) || 'Please select at least one event'
-    // }
+    }
   },
 
   mounted() {
