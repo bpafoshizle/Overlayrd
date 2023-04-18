@@ -1,7 +1,6 @@
 <template>
   <div>
     <v-btn color="primary" @click="selectDirectory">{{ buttonText }}</v-btn>
-    <p v-if="directoryHandle">Selected directory location: {{ directoryHandle.name }}</p>
   </div>
 </template>
   
@@ -11,15 +10,11 @@ export default {
     buttonText: {
       type: String,
       default: 'Select Directory Location'
-    },
-    directoryHandle: {
-      type: Object,
-      default: null
     }
   },
   methods: {
     async selectDirectory() {
-      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const handle = await window.showDirectoryPicker();
       this.$emit("directorySelected", handle);
     }
   }

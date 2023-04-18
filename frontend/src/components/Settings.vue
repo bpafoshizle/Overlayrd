@@ -66,14 +66,7 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-        <v-row>
-          <v-col>
-            <v-btn color="primary" type="submit" block class="mt-2">Save</v-btn>
-          </v-col>
-          <v-col>
-            <v-btn color="primary" type="submit" block class="mt-2" @click="authorizeApp">Authorize Twitch</v-btn>
-          </v-col>
-        </v-row>
+        <v-btn color="primary" type="submit" block class="mt-2">Save and Authorize</v-btn>
       </v-form>
     </v-card>
   </v-responsive>
@@ -162,21 +155,14 @@ export default {
   methods: {
     async submit(event) {
       const results = await event
-      // alert(JSON.stringify(results, null, 2))
-      this.writeFile(this.settingsFileHandle, JSON.stringify(this.settings, null, 2))
-    },
-
-    async authorizeApp(event) {
-      const results = await event
-      // alert(JSON.stringify(results, null, 2))
-      window.location.href = 'https://id.twitch.tv/oauth2/authorize?' +
+      this.writeFile(this.settingsFileHandle, JSON.stringify(this.settings, null, 2));
+      window.location.href = `${this.settings.twitchIDUrl}/oauth2/authorize?` +
         'response_type=token' +
         `&client_id=${encodeURIComponent(this.settings.twitchClientId)}` +
         `&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/twitch/callback')}` +
         `& scope=${encodeURIComponent('moderator:read:followers channel:read:subscriptions')} ` +
-        `& state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))} `;
+        `& state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))}`;
     },
-
 
     async directorySelected(handle) {
       this.directoryHandle = handle
@@ -190,7 +176,8 @@ export default {
 
             const permitted = await this.verifyPermission(this.settingsFileHandle)
             if (permitted) {
-              this.settings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+              const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+              this.settings = { ...this.settings, ...fileSettings };
             }
             continue;
           }

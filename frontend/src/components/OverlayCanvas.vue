@@ -12,7 +12,7 @@
   
 <script>
 import { useTheme } from 'vuetify'
-import { mapWritableState } from 'pinia'
+import { mapWritableState, mapState } from 'pinia'
 import { useSettingsStore } from '../stores/settings'
 
 export default {
@@ -22,48 +22,86 @@ export default {
         ['HNDR', 'twitchFollower'],
         ['KuHouse', 'twitchSubscription'],
       ],
-      checkedEvents: []
+      checkedEvents: [],
+      sessionId: '',
+      reconnect: false,
+      keepAliveInterval: 0,
+      lastKeepAliveTimestamp: 0,
     }
   },
 
   computed: {
     // gives access to settings inside the component
     ...mapWritableState(useSettingsStore, ['settings']),
+    ...mapState(useSettingsStore, {
+      getCheckedTwitchEvents(store) {
+        return store.getCheckedTwitchEvents;
+      }
+    })
   },
 
   methods: {
     async getTwitchAppAccessToken() {
-      fetch(`${this.settings.twitchHelixUrl}/oauth2/token`, {
+      const response = await fetch(`${this.settings.twitchIDUrl}/oauth2/token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json"
         },
-        data: {
+        body: JSON.stringify({
           'client_id': this.settings.twitchClientId,
           'client_secret': this.settings.twitchClientSecret,
           'grant_type': 'client_credentials'
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          this.settings.twitchAppAccessToken = data.access_token;
-          console.log(`app access token: ${this.settings.twitchAppAccessToken}`);
-        });
+        })
+      });
+      console.log(response);
+      const data = await response.json();
+      console.log(data);
+      this.settings.twitchAppAccessToken = data.access_token;
+      console.log(`app access token: ${this.settings.twitchAppAccessToken}`);
     },
     async getTwitchBroadcasterID() {
-      fetch(`${this.settings.twitchHelixUrl}/users?login=${this.settings.twitchBroadcasterName}`, {
+      const response = await fetch(`${this.settings.twitchHelixUrl}/users?login=${this.settings.twitchBroadcasterName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Client-Id': this.settings.twitchClientId,
           'Authorization': `Bearer ${this.settings.twitchAppAccessToken}`
         }
-      })
-        .then(response => response.json())
-        .then(data => {
-          this.settings.twitchBroadcasterID = data.data[0].id;
-          console.log(`broadcaster id: ${this.settings.twitchBroadcasterID}`);
+      });
+      console.log(response);
+      const data = await response.json();
+      console.log(data);
+      this.settings.twitchBroadcasterID = data.data[0].id;
+      console.log(`broadcaster id: ${this.settings.twitchBroadcasterID}`);
+    },
+    async subscribeToEvents() {
+      await this.getTwitchAppAccessToken();
+      await this.getTwitchBroadcasterID();
+      this.getCheckedTwitchEvents.forEach(async twitchEvent => {
+        const response = await fetch(`${this.settings.twitchHelixUrl}/eventsub/subscriptions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Client-Id': this.settings.twitchClientId,
+            'Authorization': `Bearer ${this.settings.twitchUserAccessToken}`
+          },
+          body: JSON.stringify({
+            'type': twitchEvent.value,
+            'version': twitchEvent.version,
+            'condition': {
+              'broadcaster_user_id': this.settings.twitchBroadcasterID,
+              'moderator_user_id': this.settings.twitchBroadcasterID
+            },
+            'transport': {
+              'method': 'websocket',
+              'session_id': this.sessionId
+            }
+          })
         });
+        console.log(response);
+        const data = await response.json();
+        console.log(data);
+      });
     },
 
     listenEvents(env) {
@@ -71,53 +109,16 @@ export default {
       const localUrl = this.settings.twitchWSLocalUrl;
       const prodUrl = this.settings.twitchWSProdUrl;
       const initialUrl = ((env === 'DEV') ? localUrl : prodUrl);
-      let twitchUserName = this.settings.twitchBroadcasterName;
-      let eventTypes = this.settings.selectedTwitchEvents;
+      // let twitchUserName = this.settings.twitchBroadcasterName;
+      // let eventTypes = this.settings.selectedTwitchEvents;
       let ws;
       let wsClosing;
-      let sessionId; // will be set after session_welcome
-      let keepAliveInterval; // will be set after session_welcome
-      let lastKeepAliveTimestamp; // set after session_keepalive or notification
-      let reconnect = false;
 
-      function connect(url = initialUrl, reconnect = false) {
+      function connect(url = initialUrl) {
         console.log(`connecting to ${url}`);
-        reconnect = reconnect;
         ws = new WebSocket(url);
       }
       connect();
-
-      async function subscribeToEvents() {
-        if (!reconnect) {
-          await this.getTwitchAppAccessToken();
-          await this.getTwitchBroadcasterID();
-          this.settings.getCheckedTwitchEvents.forEach(async twitchEvent => {
-            const response = await fetch(`${this.settings.twitchHelixUrl}/eventsub/subscriptions`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Client-Id': this.settings.twitchClientId,
-                'Authorization': `Bearer ${this.settings.twitchUserAccessToken}`
-              },
-              body: JSON.stringify({
-                'type': twitchEvent.value,
-                'version': twitchEvent.version,
-                'condition': {
-                  'broadcaster_user_id': this.settings.twitchBroadcasterID,
-                  'moderator_user_id': this.settings.twitchBroadcasterID
-                },
-                'transport': {
-                  'method': 'websocket',
-                  'session_id': sessionId
-                }
-              })
-            });
-            console.log(response.json());
-          });
-        } else {
-          console.log('reconnect, skipping subscribe')
-        }
-      }
       ws.onopen = () => {
         console.log('connected to eventsub');
       };
@@ -125,30 +126,31 @@ export default {
         const data = JSON.parse(event.data);
         if (data.metadata.message_type === 'session_welcome') {
           let payload = data.payload;
-          sessionId = payload.session.id
-          console.log(`session id: ${sessionId}`)
-          keepAliveInterval = payload.session.keepalive_timeout_seconds;
-          if (reconnect) {
-            console.log('reconnect welcome recieved, skipping subscribe. closing old connection')
-            wsClosing.close()
+          this.sessionId = payload.session.id;
+          console.log(`session id: ${this.sessionId}`);
+          this.keepAliveInterval = payload.session.keepalive_timeout_seconds;
+          if (this.reconnect) {
+            console.log('reconnect welcome recieved, skipping subscribe. closing old connection');
+            wsClosing.close();
           } else {
-            subscribeToEvents();
+            this.subscribeToEvents();
           }
 
         }
         else if (data.metadata.message_type === 'session_keepalive') {
-          console.log(`keepalive received. timestamp: ${data.metadata.message_timestamp}`)
-          lastKeepAliveTimestamp = data.metadata.message_timestamp;
+          console.log(`keepalive received. timestamp: ${data.metadata.message_timestamp}`);
+          this.lastKeepAliveTimestamp = data.metadata.message_timestamp;
         }
         else if (data.metadata.message_type === 'session_reconnect') {
           console.log(`reconnecting to eventsub at ${data.payload.session.reconnect_url}`);
           wsClosing = ws;
           setTimeout(() => {
-            connect(data.payload.session.reconnect_url, true)
+            this.reconnect = true;
+            connect(data.payload.session.reconnect_url);
           }, 1000);
         }
         else if (data.metadata.message_type === 'notification') {
-          lastKeepAliveTimestamp = data.metadata.message_timestamp;
+          this.lastKeepAliveTimestamp = data.metadata.message_timestamp;
           let payload = data.payload;
           let eventType = payload.subscription.type;
           let username = payload.event.broadcaster_user_name;
@@ -282,8 +284,7 @@ export default {
 
   async created() {
     console.log(`Created Component OverlayCanvas`);
-    this.checkedEvents = this.settings.twitchEvents.filter((twitchEvent) => twitchEvent.checked);
-    this.checkedEvents.forEach(async (twitchEvent) => {
+    this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
       twitchEvent.imageFile = URL.createObjectURL(await twitchEvent.imageFileHandle.getFile());
       twitchEvent.audioFile = URL.createObjectURL(await twitchEvent.audioFileHandle.getFile());
     });
