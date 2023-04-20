@@ -6,20 +6,25 @@ export const useSettingsStore = defineStore('settings', {
         audioFiles: [],
         settingsFileHandle: null,
         directoryHandle: null,
-        settings:{
+        overlayProps: {
             canvasWidth: 1920,
             canvasHeight: 1080,
-            twitchClientId: '',
-            twitchClientSecret: '',
-            twitchBroadcasterName: '',
-            twitchBroadcasterID: '',
-            twitchAppAccessToken: '',
-            twitchUserAccessToken: '',
-            backendUrl: 'http://localhost:8000',
+        },
+        twitchConnectivity: {
             twitchHelixUrl: 'https://api.twitch.tv/helix',
             twitchIDUrl: 'https://id.twitch.tv',
             twitchWSLocalUrl: 'ws://localhost:8080/eventsub',
             twitchWSProdUrl: 'wss://eventsub-beta.wss.twitch.tv/ws',
+        },
+        twitchTemporaries:{
+            twitchBroadcasterID: '',
+            twitchAppAccessToken: '',
+            twitchUserAccessToken: '',
+        },
+        userEnteredSettings:{
+            twitchClientId: '',
+            twitchClientSecret: '',
+            twitchBroadcasterName: '',
             selectedTwitchEvents: ["channel.follow"],
             twitchEvents: [
                 {
@@ -75,14 +80,16 @@ export const useSettingsStore = defineStore('settings', {
                 imageName: null, imageFileHandle: null, imageId: 'twitch-donation-img', imageWidth: 700, imageHeight: 700,
                 textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: '',
                 audioName: null, audioFileHandle: null, audioId: 'twitch-donation-audio', audioVolume: 0.5
-                },
-            ],
+                }
+            ]
         }
     }),
     getters: {
-        getSettings: (state) => state.settings,
+        getSettings: (state) => state.userEnteredSettings,
         getCheckedTwitchEvents(state) {
-            return state.settings.twitchEvents.filter(twitchEvent => twitchEvent.checked);
+            let result = state.userEnteredSettings.twitchEvents.filter(twitchEvent => twitchEvent.checked);
+            console.log(result);
+            return result;
         },
     }
 })

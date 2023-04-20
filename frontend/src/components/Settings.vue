@@ -26,13 +26,13 @@
               <v-container>
                 <v-row>
                   <v-col cols="12" md="6">
-                    <v-text-field v-model="settings.twitchClientId" :rules="twitchClientIdRules" :counter="30"
+                    <v-text-field v-model="userEnteredSettings.twitchClientId" :rules="twitchClientIdRules" :counter="30"
                       label="Twitch Client ID" required></v-text-field>
                   </v-col>
 
                   <v-col cols="12" md="6">
-                    <v-text-field v-model="settings.twitchClientSecret" :rules="twitchClientSecretRules" :counter="30"
-                      label="Twitch Client Secret" required></v-text-field>
+                    <v-text-field v-model="userEnteredSettings.twitchClientSecret" :rules="twitchClientSecretRules"
+                      :counter="30" label="Twitch Client Secret" required></v-text-field>
                   </v-col>
                 </v-row>
               </v-container>
@@ -46,20 +46,20 @@
             <v-expansion-panel-text>
               <v-container>
                 <v-row>
-                  <v-text-field v-model="settings.twitchBroadcasterName" :rules="twitchBroadcasterNameRules" :counter="25"
-                    label="Twitch Broadcaster Name" required></v-text-field>
+                  <v-text-field v-model="userEnteredSettings.twitchBroadcasterName" :rules="twitchBroadcasterNameRules"
+                    :counter="25" label="Twitch Broadcaster Name" required></v-text-field>
                 </v-row>
-                <v-row v-for="(twitchEvent, i) in settings.twitchEvents" :key="twitchEvent.value">
+                <v-row v-for="(twitchEvent, i) in userEnteredSettings.twitchEvents" :key="twitchEvent.value">
                   <v-col cols="12" md="6">
-                    <v-switch v-model="settings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
+                    <v-switch v-model="userEnteredSettings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
                       :value="twitchEvent.value" :rules="twitchEventsRules" />
                   </v-col>
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
                     <v-select variant="underlined" label="Image" :items="imageFiles" item-title="name"
-                      v-model="settings.twitchEvents[i].imageName" color="primary" />
+                      v-model="userEnteredSettings.twitchEvents[i].imageName" color="primary" />
                     <v-select variant="underlined" label="Audio" :items="audioFiles" item-title="name"
-                      v-model="settings.twitchEvents[i].audioName" color="primary" />
+                      v-model="userEnteredSettings.twitchEvents[i].audioName" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
@@ -123,8 +123,7 @@ export default {
       ],
       twitchEventsRules: [
         value => {
-          //if (value || this.settings.twitchEvents.some((value) => value.checked)) return true
-          if (this.settings.selectedTwitchEvents.length > 0) return true
+          if (this.userEnteredSettings.selectedTwitchEvents.length > 0) return true
           return 'Please select at least one event.'
         }
       ]
@@ -132,8 +131,8 @@ export default {
   },
 
   watch: {
-    'settings.selectedTwitchEvents': function (val, oldVal) {
-      this.settings.twitchEvents.forEach((twitchEvent) => {
+    'userEnteredSettings.selectedTwitchEvents': function (val, oldVal) {
+      this.userEnteredSettings.twitchEvents.forEach((twitchEvent) => {
         if (val.includes(twitchEvent.value)) {
           twitchEvent.checked = true
         } else {
@@ -145,7 +144,8 @@ export default {
 
   computed: {
     // gives access to this.settings inside the component and allows setting it
-    ...mapWritableState(useSettingsStore, ['settings']),
+    ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
+    ...mapWritableState(useSettingsStore, ['twitchConnectivity']),
     ...mapWritableState(useSettingsStore, ['imageFiles']),
     ...mapWritableState(useSettingsStore, ['audioFiles']),
     ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
@@ -155,10 +155,10 @@ export default {
   methods: {
     async submit(event) {
       const results = await event
-      this.writeFile(this.settingsFileHandle, JSON.stringify(this.settings, null, 2));
-      window.location.href = `${this.settings.twitchIDUrl}/oauth2/authorize?` +
+      await this.writeFile(this.settingsFileHandle, JSON.stringify(this.userEnteredSettings, null, 2));
+      window.location.href = `${this.twitchConnectivity.twitchIDUrl}/oauth2/authorize?` +
         'response_type=token' +
-        `&client_id=${encodeURIComponent(this.settings.twitchClientId)}` +
+        `&client_id=${encodeURIComponent(this.userEnteredSettings.twitchClientId)}` +
         `&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/twitch/callback')}` +
         `& scope=${encodeURIComponent('moderator:read:followers channel:read:subscriptions')} ` +
         `& state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))}`;
@@ -176,8 +176,12 @@ export default {
 
             const permitted = await this.verifyPermission(this.settingsFileHandle)
             if (permitted) {
-              const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-              this.settings = { ...this.settings, ...fileSettings };
+              try {
+                const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+                this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
+              } catch (e) {
+                console.log(e)
+              }
             }
             continue;
           }
@@ -196,7 +200,7 @@ export default {
         this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
       }
       else {
-        this.settings.twitchEvents.forEach((twitchEvent) => {
+        this.userEnteredSettings.twitchEvents.forEach((twitchEvent) => {
           twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
           twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
         })

@@ -1,6 +1,7 @@
 <template>
   <div>
-    <canvas id="bgcanvasid" :width="settings.canvasWidth" :height="settings.canvasHeight" background="none"></canvas>
+    <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight"
+      background="none"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
         :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
@@ -32,7 +33,10 @@ export default {
 
   computed: {
     // gives access to settings inside the component
-    ...mapWritableState(useSettingsStore, ['settings']),
+    ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
+    ...mapState(useSettingsStore, ['overlayProps']),
+    ...mapState(useSettingsStore, ['twitchConnectivity']),
+    ...mapState(useSettingsStore, ['twitchTemporaries']),
     ...mapState(useSettingsStore, {
       getCheckedTwitchEvents(store) {
         return store.getCheckedTwitchEvents;
@@ -42,55 +46,55 @@ export default {
 
   methods: {
     async getTwitchAppAccessToken() {
-      const response = await fetch(`${this.settings.twitchIDUrl}/oauth2/token`, {
+      const response = await fetch(`${this.twitchConnectivity.twitchIDUrl}/oauth2/token`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          'client_id': this.settings.twitchClientId,
-          'client_secret': this.settings.twitchClientSecret,
+          'client_id': this.userEnteredSettings.twitchClientId,
+          'client_secret': this.userEnteredSettings.twitchClientSecret,
           'grant_type': 'client_credentials'
         })
       });
-      console.log(response);
+      // console.log(response);
       const data = await response.json();
-      console.log(data);
-      this.settings.twitchAppAccessToken = data.access_token;
-      console.log(`app access token: ${this.settings.twitchAppAccessToken}`);
+      // console.log(data);
+      this.twitchTemporaries.twitchAppAccessToken = data.access_token;
+      console.log(`app access token: ${this.twitchTemporaries.twitchAppAccessToken}`);
     },
     async getTwitchBroadcasterID() {
-      const response = await fetch(`${this.settings.twitchHelixUrl}/users?login=${this.settings.twitchBroadcasterName}`, {
+      const response = await fetch(`${this.twitchConnectivity.twitchHelixUrl}/users?login=${this.userEnteredSettings.twitchBroadcasterName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Client-Id': this.settings.twitchClientId,
-          'Authorization': `Bearer ${this.settings.twitchAppAccessToken}`
+          'Client-Id': this.userEnteredSettings.twitchClientId,
+          'Authorization': `Bearer ${this.twitchTemporaries.twitchAppAccessToken}`
         }
       });
-      console.log(response);
+      // console.log(response);
       const data = await response.json();
-      console.log(data);
-      this.settings.twitchBroadcasterID = data.data[0].id;
-      console.log(`broadcaster id: ${this.settings.twitchBroadcasterID}`);
+      // console.log(data);
+      this.twitchTemporaries.twitchBroadcasterID = data.data[0].id;
+      console.log(`broadcaster id: ${this.twitchTemporaries.twitchBroadcasterID}`);
     },
     async subscribeToEvents() {
       await this.getTwitchAppAccessToken();
       await this.getTwitchBroadcasterID();
       this.getCheckedTwitchEvents.forEach(async twitchEvent => {
-        const response = await fetch(`${this.settings.twitchHelixUrl}/eventsub/subscriptions`, {
+        const response = await fetch(`${this.twitchConnectivity.twitchHelixUrl}/eventsub/subscriptions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Client-Id': this.settings.twitchClientId,
-            'Authorization': `Bearer ${this.settings.twitchUserAccessToken}`
+            'Client-Id': this.userEnteredSettings.twitchClientId,
+            'Authorization': `Bearer ${this.twitchTemporaries.twitchUserAccessToken}`
           },
           body: JSON.stringify({
             'type': twitchEvent.value,
             'version': twitchEvent.version,
             'condition': {
-              'broadcaster_user_id': this.settings.twitchBroadcasterID,
-              'moderator_user_id': this.settings.twitchBroadcasterID
+              'broadcaster_user_id': this.twitchTemporaries.twitchBroadcasterID,
+              'moderator_user_id': this.twitchTemporaries.twitchBroadcasterID
             },
             'transport': {
               'method': 'websocket',
@@ -106,8 +110,8 @@ export default {
 
     listenEvents(env) {
       const alertTimeout = 5000;
-      const localUrl = this.settings.twitchWSLocalUrl;
-      const prodUrl = this.settings.twitchWSProdUrl;
+      const localUrl = this.twitchConnectivity.twitchWSLocalUrl;
+      const prodUrl = this.twitchConnectivity.twitchWSProdUrl;
       const initialUrl = ((env === 'DEV') ? localUrl : prodUrl);
       // let twitchUserName = this.settings.twitchBroadcasterName;
       // let eventTypes = this.settings.selectedTwitchEvents;
@@ -193,7 +197,7 @@ export default {
         //console.log(props);
         return props;
       }
-      const alertTemplate = this.settings.twitchEvents.find(
+      const alertTemplate = this.userEnteredSettings.twitchEvents.find(
         (event) => event.id === alertTemplateName
       );
       const {
