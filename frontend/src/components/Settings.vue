@@ -5,16 +5,13 @@
         <v-expansion-panels>
           <v-expansion-panel>
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
-              Alert Media and Settings Directory
+              Alert Media Directory
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <directory-location-input v-model="directoryHandle" button-text="Choose Directory"
                 @directorySelected="directorySelected($event)" />
               <v-chip v-if="directoryHandle" class="ma-2" color="primary" text-color="white">
                 Selected Directory: {{ directoryHandle.name }}
-              </v-chip>
-              <v-chip v-if="settingsFileHandle" class="ma-2" color="primary" text-color="white">
-                Settings File: {{ settingsFileHandle.name }}
               </v-chip>
             </v-expansion-panel-text>
           </v-expansion-panel>
@@ -27,12 +24,11 @@
                 <v-row>
                   <v-col cols="12" md="6">
                     <v-text-field v-model="userEnteredSettings.twitchClientId" :rules="twitchClientIdRules" :counter="30"
-                      label="Twitch Client ID" required></v-text-field>
+                      :type="'password'" label="Twitch Client ID" required></v-text-field>
                   </v-col>
-
                   <v-col cols="12" md="6">
                     <v-text-field v-model="userEnteredSettings.twitchClientSecret" :rules="twitchClientSecretRules"
-                      :counter="30" label="Twitch Client Secret" required></v-text-field>
+                      :counter="30" :type="'password'" label="Twitch Client Secret" required></v-text-field>
                   </v-col>
                 </v-row>
               </v-container>
@@ -66,7 +62,7 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-        <v-btn color="primary" type="submit" block class="mt-2">Save Settings</v-btn>
+        <v-btn color="primary" type="submit" block class="mt-2">Validate Settings</v-btn>
         <v-btn color="primary" @click="authorizeTwitch" block class="mt-2">Authorize Twitch</v-btn>
       </v-form>
     </v-card>
@@ -161,7 +157,7 @@ export default {
   methods: {
     async submit(event) {
       const results = await event
-      await this.writeFile(this.settingsFileHandle, JSON.stringify(this.userEnteredSettings, null, 2));
+      //await this.writeFile(this.settingsFileHandle, JSON.stringify(this.userEnteredSettings, null, 2));
     },
 
     async authorizeTwitch(event) {
@@ -181,18 +177,18 @@ export default {
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
           if (entry.name === 'settings.json') {
-            // Set up the settings file
-            this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json');
+            // // Set up the settings file
+            // this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json');
 
-            const permitted = await this.verifyPermission(this.settingsFileHandle)
-            if (permitted) {
-              try {
-                const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-                this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
-              } catch (e) {
-                console.log(e)
-              }
-            }
+            // const permitted = await this.verifyPermission(this.settingsFileHandle)
+            // if (permitted) {
+            //   try {
+            //     const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+            //     this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
+            //   } catch (e) {
+            //     console.log(e)
+            //   }
+            // }
             continue;
           }
           else {
@@ -206,15 +202,10 @@ export default {
         }
       }
 
-      if (!this.settingsFileHandle) {
-        this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
-      }
-      else {
-        this.userEnteredSettings.twitchEvents.forEach((twitchEvent) => {
-          twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
-          twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
-        })
-      }
+      this.userEnteredSettings.twitchEvents.forEach((twitchEvent) => {
+        twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
+        twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
+      })
     },
 
     pushIfNotExists(array, object, property) {
@@ -258,6 +249,15 @@ export default {
   mounted() {
     const theme = useTheme();
     theme.global.name.value = 'mainTheme';
+    // const permitted = await this.verifyPermission(this.settingsFileHandle)
+    // if (permitted) {
+    //   try {
+    //     const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+    //     this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
+    //   } catch (e) {
+    //     console.log(e)
+    //   }
+    // }
   }
 }
 </script>

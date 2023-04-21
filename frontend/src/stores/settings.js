@@ -96,5 +96,6 @@ export const useSettingsStore = defineStore('settings', {
             let permissions = result.map(twitchEvent => twitchEvent.permission).join(' ');
             return permissions;
         }
-    }
+    },
+    persist: true
 })
