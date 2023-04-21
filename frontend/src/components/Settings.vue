@@ -75,7 +75,7 @@
 <script>
 import { useTheme } from 'vuetify'
 import DirectoryLocationInput from './DirectoryLocationInput.vue'
-import { mapWritableState } from 'pinia'
+import { mapWritableState, mapState } from 'pinia'
 import { useSettingsStore } from '../stores/settings'
 
 export default {
@@ -150,6 +150,11 @@ export default {
     ...mapWritableState(useSettingsStore, ['audioFiles']),
     ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
     ...mapWritableState(useSettingsStore, ['directoryHandle']),
+    ...mapState(useSettingsStore, {
+      getPermissionsString(store) {
+        return store.getPermissionsString;
+      }
+    })
   },
 
   methods: {
@@ -160,8 +165,8 @@ export default {
         'response_type=token' +
         `&client_id=${encodeURIComponent(this.userEnteredSettings.twitchClientId)}` +
         `&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/twitch/callback')}` +
-        `& scope=${encodeURIComponent('moderator:read:followers channel:read:subscriptions')} ` +
-        `& state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))}`;
+        `&scope=${encodeURIComponent(this.getPermissionsString)}` +
+        `&state=${encodeURIComponent(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))}`;
     },
 
     async directorySelected(handle) {

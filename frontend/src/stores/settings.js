@@ -91,5 +91,10 @@ export const useSettingsStore = defineStore('settings', {
             console.log(result);
             return result;
         },
+        getPermissionsString(state) {
+            let result = state.userEnteredSettings.twitchEvents.filter(twitchEvent => twitchEvent.checked);
+            let permissions = result.map(twitchEvent => twitchEvent.permission).join(' ');
+            return permissions;
+        }
     }
 })

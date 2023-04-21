@@ -3,9 +3,9 @@
     <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight"
       background="none"></canvas>
     <div style="display:none;">
-      <img v-for="twitchEvent in checkedEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
+      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
         :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
-      <audio v-for="twitchEvent in checkedEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
+      <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
         :volume="twitchEvent.audioVolume" />
     </div>
   </div>
