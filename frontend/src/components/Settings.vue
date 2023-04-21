@@ -66,7 +66,8 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-        <v-btn color="primary" type="submit" block class="mt-2">Save and Authorize</v-btn>
+        <v-btn color="primary" type="submit" block class="mt-2">Save Settings</v-btn>
+        <v-btn color="primary" @click="authorizeTwitch" block class="mt-2">Authorize Twitch</v-btn>
       </v-form>
     </v-card>
   </v-responsive>
@@ -161,6 +162,10 @@ export default {
     async submit(event) {
       const results = await event
       await this.writeFile(this.settingsFileHandle, JSON.stringify(this.userEnteredSettings, null, 2));
+    },
+
+    async authorizeTwitch(event) {
+      const results = await event
       window.location.href = `${this.twitchConnectivity.twitchIDUrl}/oauth2/authorize?` +
         'response_type=token' +
         `&client_id=${encodeURIComponent(this.userEnteredSettings.twitchClientId)}` +
