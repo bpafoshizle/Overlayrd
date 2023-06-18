@@ -157,7 +157,7 @@ export default {
           this.lastKeepAliveTimestamp = data.metadata.message_timestamp;
           let payload = data.payload;
           let eventType = payload.subscription.type;
-          let username = payload.event.broadcaster_user_name;
+          let username = payload.event.user_name;
           let alertTemplate = null;
           if (eventType === 'channel.follow') {
             alertTemplate = 'twitchFollower';
