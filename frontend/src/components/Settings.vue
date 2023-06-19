@@ -52,7 +52,7 @@
                   </v-col>
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
-                    <v-select variant="underlined" label="Image" :items="imageFiles" item-title="name"
+                    <v-select variant="underlined" label="Image" :items="getImageNames()" item-title="name"
                       v-model="userEnteredSettings.twitchEvents[i].imageName" color="primary" />
                     <v-select variant="underlined" label="Audio" :items="audioFiles" item-title="name"
                       v-model="userEnteredSettings.twitchEvents[i].audioName" color="primary" />
