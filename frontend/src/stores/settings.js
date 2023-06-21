@@ -14,7 +14,7 @@ export const useSettingsStore = defineStore('settings', {
             twitchHelixUrl: 'https://api.twitch.tv/helix',
             twitchIDUrl: 'https://id.twitch.tv',
             twitchWSLocalUrl: 'ws://localhost:8080/eventsub',
-            twitchWSProdUrl: 'wss://eventsub-beta.wss.twitch.tv/ws',
+            twitchWSProdUrl: 'wss://eventsub.wss.twitch.tv/ws',
         },
         twitchTemporaries:{
             twitchBroadcasterID: '',
@@ -40,15 +40,15 @@ export const useSettingsStore = defineStore('settings', {
                 audioName: null, audioFileHandle: null, audioId: 'twitch-new-subscriber-audio', audioVolume: 0.5
                 },
                 {
-                id: 'twitchResubscription', text: 'Resubscription', value: 'resubscription', checked: false, version: '1',
+                id: 'twitchResubscription', text: 'Resubscription', value: 'channel.subscription.message', checked: false, version: '1',
                 imageName: null, imageFileHandle: null, imageId: 'twitch-resubscriber-img', imageWidth: 700, imageHeight: 700,
-                textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: '',
+                textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: 'channel:read:subscriptions',
                 audioName: null, audioFileHandle: null, audioId: 'twitch-resubscriber-audio', audioVolume: 0.5
                 },
                 {
                 id: 'twitchGiftSubscription', text: 'Gifted Subscription', value: 'channel.subscription.gift', checked: false, version: '1',
                 imageName: null, imageFileHandle: null, imageId: 'twitch-gifted-subscriber-img', imageWidth: 700, imageHeight: 700,
-                textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: '',
+                textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: 'channel:read:subscriptions',
                 audioName: null, audioFileHandle: null, audioId: 'twitch-gifted-subscriber-audio', audioVolume: 0.5
                 },
                 {
@@ -58,10 +58,10 @@ export const useSettingsStore = defineStore('settings', {
                 audioName: null, audioFileHandle: null, audioId: 'twitch-raid-audio', audioVolume: 0.5
                 },
                 {
-                id: 'twitchBits', text: 'Bits', value: 'channel.bits', checked: false, version: '1',
-                imageName: null, imageFileHandle: null, imageId: 'twitch-bits-img', imageWidth: 700, imageHeight: 700,
-                textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: '',
-                audioName: null, audioFileHandle: null, audioId: 'twitch-bits-audio', audioVolume: 0.5
+                id: 'twitchCheer', text: 'Cheer', value: 'channel.cheer', checked: false, version: '1',
+                imageName: null, imageFileHandle: null, imageId: 'twitch-cheer-img', imageWidth: 700, imageHeight: 700,
+                textXOffset: 0, textYOffset: 450, textColor: '#6441a4', permission: 'bits:read',
+                audioName: null, audioFileHandle: null, audioId: 'twitch-cheer-audio', audioVolume: 0.5
                 },
                 {
                 id: 'twitchChannelPoints',text: 'Channel Points', value: 'channel.channel_points_custom_reward_redemption.add', checked: false, version: '1',
@@ -93,7 +93,7 @@ export const useSettingsStore = defineStore('settings', {
         },
         getPermissionsString(state) {
             let result = state.userEnteredSettings.twitchEvents.filter(twitchEvent => twitchEvent.checked);
-            let permissions = result.map(twitchEvent => twitchEvent.permission).join(' ');
+            let permissions = [...new Set(result.map(twitchEvent => twitchEvent.permission))].filter(n => n).join(' ');
             return permissions;
         }
     },

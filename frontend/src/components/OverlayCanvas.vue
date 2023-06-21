@@ -23,7 +23,6 @@ export default {
         ['HNDR', 'twitchFollower'],
         ['KuHouse', 'twitchSubscription'],
       ],
-      checkedEvents: [],
       sessionId: '',
       reconnect: false,
       keepAliveInterval: 0,
@@ -72,7 +71,7 @@ export default {
           'Authorization': `Bearer ${this.twitchTemporaries.twitchAppAccessToken}`
         }
       });
-      // console.log(response);
+      //console.log(response);
       const data = await response.json();
       // console.log(data);
       this.twitchTemporaries.twitchBroadcasterID = data.data[0].id;
@@ -102,7 +101,7 @@ export default {
             }
           })
         });
-        console.log(response);
+        //console.log(response);
         const data = await response.json();
         console.log(data);
       });
