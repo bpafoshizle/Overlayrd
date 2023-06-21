@@ -173,6 +173,10 @@ export default {
     async directorySelected(handle) {
       this.directoryHandle = handle
 
+      // Clear the audio and image file lists
+      this.audioFiles = []
+      this.imageFiles = []
+
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
