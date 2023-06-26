@@ -81,8 +81,7 @@ export default {
   },
   data() {
     return {
-      audioFiles: [],
-      imageFiles: [],
+      directoryHandle: null,
       valid: false,
       twitchClientIdRules: [
         value => {
@@ -146,7 +145,9 @@ export default {
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapWritableState(useSettingsStore, ['twitchConnectivity']),
     ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
-    ...mapWritableState(useSettingsStore, ['directoryHandle']),
+    ...mapWritableState(useSettingsStore, ['directory']),
+    ...mapWritableState(useSettingsStore, ['audioFiles']),
+    ...mapWritableState(useSettingsStore, ['imageFiles']),
     ...mapState(useSettingsStore, {
       getPermissionsString(store) {
         return store.getPermissionsString;
@@ -171,7 +172,11 @@ export default {
     },
 
     async directorySelected(handle) {
-      this.directoryHandle = handle
+      setIndexedDB(
+        { key: 'directory', value: handle }
+      )
+      this.directoryHandle = handle;
+      this.directory = handle.name;
 
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
@@ -194,12 +199,12 @@ export default {
           else {
             const extension = entry.name.slice(-4); // get last 4 characters of the filename
             if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-              this.pushIfNotExists(this.imageFiles, entry, 'name')
+              this.pushIfNotExists(this.imageFiles, entry.name)
               setIndexedDB(
                 { key: entry.name, value: entry }
               )
             } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-              this.pushIfNotExists(this.audioFiles, entry, 'name')
+              this.pushIfNotExists(this.audioFiles, entry.name)
               setIndexedDB(
                 { key: entry.name, value: entry }
               )
@@ -208,15 +213,15 @@ export default {
         }
       }
 
-      this.userEnteredSettings.twitchEvents.forEach((twitchEvent) => {
-        twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
-        twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
+      this.userEnteredSettings.twitchEvents.forEach(async (twitchEvent) => {
+        twitchEvent.imageFileHandle = await getIndexedDB(twitchEvent.imageName);
+        twitchEvent.audioFileHandle = await getIndexedDB(twitchEvent.audioName);
       })
     },
 
-    pushIfNotExists(array, object, property) {
-      if (!array.some((e) => e[property] === object[property])) {
-        array.push(object)
+    pushIfNotExists(array, value) {
+      if (!array.some(value)) {
+        array.push(value)
       }
     },
 
@@ -229,10 +234,10 @@ export default {
       await writable.close();
     },
     getImageNames() {
-      return this.imageFiles.map((imageFile) => imageFile.name);
+      return this.imageFiles;
     },
     getAudioNames() {
-      return this.audioFiles.map((audioFile) => audioFile.name);
+      return this.audioFiles;
     },
     async verifyPermission(fileHandle, readWrite) {
       const options = {};
@@ -257,6 +262,7 @@ export default {
     theme.global.name.value = 'mainTheme';
     this.audioFiles = await getIndexedDB('audioFiles') || []
     this.imageFiles = await getIndexedDB('imageFiles') || []
+    this.directoryHandle = await getIndexedDB('directory') || null
     // const permitted = await this.verifyPermission(this.settingsFileHandle)
     // if (permitted) {
     //   try {
