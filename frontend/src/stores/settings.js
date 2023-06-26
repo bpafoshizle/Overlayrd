@@ -1,11 +1,20 @@
 import { defineStore } from 'pinia'
+import localForage from "localforage"
+
+localForage.config({
+    driver: localForage.INDEXEDDB, // This force IndexedDB as the driver
+})
+
+export function setIndexedDB(payload) {
+    localForage.setItem(payload.key, payload.value);
+}
+
+export async function getIndexedDB(key) {
+    return await localForage.getItem(key);
+}
 
 export const useSettingsStore = defineStore('settings', {
     state: () => ({
-        imageFiles: [],
-        audioFiles: [],
-        settingsFileHandle: null,
-        directoryHandle: null,
         overlayProps: {
             canvasWidth: 1920,
             canvasHeight: 1080,

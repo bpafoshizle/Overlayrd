@@ -42,3 +42,7 @@ pnpm build
 ### Customize configuration
 
 See [Configuration Reference](https://vitejs.dev/config/).
+
+https://www.vuemastery.com/blog/refresh-proof-your-pinia-stores/
+https://github.com/localForage/localForage
+https://kb.synology.com/en-us/DSM/help/DSM/AdminCenter/system_hardware_ups?version=7

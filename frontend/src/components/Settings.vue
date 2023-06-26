@@ -73,7 +73,7 @@
 import { useTheme } from 'vuetify'
 import DirectoryLocationInput from './DirectoryLocationInput.vue'
 import { mapWritableState, mapState } from 'pinia'
-import { useSettingsStore } from '../stores/settings'
+import { useSettingsStore, setIndexedDB, getIndexedDB } from '../stores/settings'
 
 export default {
   components: {
@@ -81,6 +81,8 @@ export default {
   },
   data() {
     return {
+      audioFiles: [],
+      imageFiles: [],
       valid: false,
       twitchClientIdRules: [
         value => {
@@ -143,8 +145,6 @@ export default {
     // gives access to this.settings inside the component and allows setting it
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapWritableState(useSettingsStore, ['twitchConnectivity']),
-    ...mapWritableState(useSettingsStore, ['imageFiles']),
-    ...mapWritableState(useSettingsStore, ['audioFiles']),
     ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
     ...mapWritableState(useSettingsStore, ['directoryHandle']),
     ...mapState(useSettingsStore, {
@@ -173,10 +173,6 @@ export default {
     async directorySelected(handle) {
       this.directoryHandle = handle
 
-      // Clear the audio and image file lists
-      this.audioFiles = []
-      this.imageFiles = []
-
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
@@ -199,8 +195,14 @@ export default {
             const extension = entry.name.slice(-4); // get last 4 characters of the filename
             if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
               this.pushIfNotExists(this.imageFiles, entry, 'name')
+              setIndexedDB(
+                { key: entry.name, value: entry }
+              )
             } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
               this.pushIfNotExists(this.audioFiles, entry, 'name')
+              setIndexedDB(
+                { key: entry.name, value: entry }
+              )
             }
           }
         }
@@ -250,9 +252,11 @@ export default {
     }
   },
 
-  mounted() {
+  async mounted() {
     const theme = useTheme();
     theme.global.name.value = 'mainTheme';
+    this.audioFiles = await getIndexedDB('audioFiles') || []
+    this.imageFiles = await getIndexedDB('imageFiles') || []
     // const permitted = await this.verifyPermission(this.settingsFileHandle)
     // if (permitted) {
     //   try {
