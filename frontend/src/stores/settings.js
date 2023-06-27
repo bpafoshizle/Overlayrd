@@ -5,8 +5,8 @@ localForage.config({
     driver: localForage.INDEXEDDB, // This force IndexedDB as the driver
 })
 
-export function setIndexedDB(payload) {
-    localForage.setItem(payload.key, payload.value);
+export async function setIndexedDB(payload) {
+    return localForage.setItem(payload.key, payload.value);
 }
 
 export async function getIndexedDB(key) {

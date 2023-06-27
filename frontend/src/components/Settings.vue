@@ -3,7 +3,7 @@
     <v-card class="mx-auto" max-width="900" outlined>
       <v-form v-model="valid" @submit.prevent="submit">
         <v-expansion-panels>
-          <v-expansion-panel>
+          <v-expansion-panel v-on:click="loadFileHandles()">
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
               Alert Media Directory
             </v-expansion-panel-title>
@@ -34,8 +34,7 @@
               </v-container>
             </v-expansion-panel-text>
           </v-expansion-panel>
-
-          <v-expansion-panel>
+          <v-expansion-panel v-on:click="loadFileHandles()">
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
               Twitch Subscripton Details
             </v-expansion-panel-title>
@@ -156,8 +155,8 @@ export default {
 
   methods: {
     async submit(event) {
+      //TODO: Validate the settings
       const results = await event
-      //await this.writeFile(this.settingsFileHandle, JSON.stringify(this.userEnteredSettings, null, 2));
     },
 
     async authorizeTwitch(event) {
@@ -180,48 +179,33 @@ export default {
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
-          if (entry.name === 'settings.json') {
-            // // Set up the settings file
-            // this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json');
-
-            // const permitted = await this.verifyPermission(this.settingsFileHandle)
-            // if (permitted) {
-            //   try {
-            //     const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-            //     this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
-            //   } catch (e) {
-            //     console.log(e)
-            //   }
-            // }
-            continue;
-          }
-          else {
-            const extension = entry.name.slice(-4); // get last 4 characters of the filename
-            if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-              if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
-                this.userEnteredSettings.imageFileNames.push(entry.name)
-                this.imageFileHandles.push(entry)
-              }
-              setIndexedDB(
-                { key: entry.name, value: entry }
-              )
-            } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-              if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
-                this.userEnteredSettings.audioFileNames.push(entry.name)
-                this.audioFileHandles.push(entry)
-              }
-              setIndexedDB(
-                { key: entry.name, value: entry }
-              )
+          const extension = entry.name.slice(-4); // get last 4 characters of the filename
+          if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
+            if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
+              this.userEnteredSettings.imageFileNames.push(entry.name)
+              this.pushIfNotExists(this.imageFileHandles, entry, 'name')
             }
+            setIndexedDB(
+              { key: entry.name, value: entry }
+            )
+          } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
+            if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
+              this.userEnteredSettings.audioFileNames.push(entry.name)
+              this.pushIfNotExists(this.audioFileHandles, entry, 'name')
+            }
+            let fileHandle = await setIndexedDB(
+              { key: entry.name, value: entry }
+            )
+
           }
         }
       }
+    },
 
-      this.userEnteredSettings.twitchEvents.forEach(async (twitchEvent) => {
-        twitchEvent.imageFileHandle = await getIndexedDB(twitchEvent.imageName);
-        twitchEvent.audioFileHandle = await getIndexedDB(twitchEvent.audioName);
-      })
+    pushIfNotExists(array, object, property) {
+      if (!array.some((e) => e[property] === object[property])) {
+        array.push(object)
+      }
     },
 
     async writeFile(fileHandle, contents) {
@@ -247,6 +231,30 @@ export default {
       }
       // The user didn't grant permission, so return false.
       return false;
+    },
+    async loadFileHandles() {
+      if (this.directoryHandle) {
+        const permitted = await this.verifyPermission(this.directoryHandle)
+        if (permitted) {
+          try {
+            this.userEnteredSettings.audioFileNames.forEach(async (audioFileName, idx) => {
+              this.audioFileHandles[idx] = await getIndexedDB(audioFileName);
+            })
+            this.userEnteredSettings.imageFileNames.forEach(async (imageFileName, idx) => {
+              this.imageFileHandles[idx] = await getIndexedDB(imageFileName);
+            })
+            this.assignFileHandlesToEventDataStructures();
+          } catch (e) {
+            console.log(e)
+          }
+        }
+      }
+    },
+    async assignFileHandlesToEventDataStructures() {
+      this.userEnteredSettings.twitchEvents.forEach(async (twitchEvent) => {
+        twitchEvent.imageFileHandle = await getIndexedDB(twitchEvent.imageName);
+        twitchEvent.audioFileHandle = await getIndexedDB(twitchEvent.audioName);
+      })
     }
   },
 
@@ -254,21 +262,6 @@ export default {
     const theme = useTheme();
     theme.global.name.value = 'mainTheme';
     this.directoryHandle = await getIndexedDB('directoryHandle') || null
-    if (this.directoryHandle) {
-      const permitted = await this.verifyPermission(this.directoryHandle)
-      if (permitted) {
-        try {
-          this.audioFilesNames.forEach(async (audioFileName, idx) => {
-            this.audioFileHandles[idx] = await getIndexedDB(audioFileName);
-          })
-          this.imageFileNames.forEach(async (imageFileName, idx) => {
-            this.imageFileHandles[idx] = await getIndexedDB(imageFileName);
-          })
-        } catch (e) {
-          console.log(e)
-        }
-      }
-    }
   }
 }
 </script>
