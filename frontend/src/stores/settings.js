@@ -31,9 +31,9 @@ export const useSettingsStore = defineStore('settings', {
             twitchUserAccessToken: '',
         },
         userEnteredSettings:{
-            directory: null,
-            audioFiles: [],
-            imageFiles: [],
+            directoryName: null,
+            audioFileNames: [],
+            imageFileNames: [],
             twitchClientId: '',
             twitchClientSecret: '',
             twitchBroadcasterName: '',

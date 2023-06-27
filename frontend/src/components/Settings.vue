@@ -52,10 +52,10 @@
                   </v-col>
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
-                    <v-select variant="underlined" label="Image" :items="getImageNames()" item-title="name"
-                      v-model="userEnteredSettings.twitchEvents[i].imageName" color="primary" />
-                    <v-select variant="underlined" label="Audio" :items="audioFiles" item-title="name"
-                      v-model="userEnteredSettings.twitchEvents[i].audioName" color="primary" />
+                    <v-select variant="underlined" label="Image" :items="userEnteredSettings.imageFileNames"
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].imageName" color="primary" />
+                    <v-select variant="underlined" label="Audio" :items="userEnteredSettings.audioFileNames"
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].audioName" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
@@ -82,6 +82,8 @@ export default {
   data() {
     return {
       directoryHandle: null,
+      audioFileHandles: [],
+      imageFileHandles: [],
       valid: false,
       twitchClientIdRules: [
         value => {
@@ -145,9 +147,6 @@ export default {
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapWritableState(useSettingsStore, ['twitchConnectivity']),
     ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
-    ...mapWritableState(useSettingsStore, ['directory']),
-    ...mapWritableState(useSettingsStore, ['audioFiles']),
-    ...mapWritableState(useSettingsStore, ['imageFiles']),
     ...mapState(useSettingsStore, {
       getPermissionsString(store) {
         return store.getPermissionsString;
@@ -173,10 +172,10 @@ export default {
 
     async directorySelected(handle) {
       setIndexedDB(
-        { key: 'directory', value: handle }
+        { key: 'directoryHandle', value: handle }
       )
       this.directoryHandle = handle;
-      this.directory = handle.name;
+      this.userEnteredSettings.directoryName = handle.name;
 
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
@@ -199,12 +198,18 @@ export default {
           else {
             const extension = entry.name.slice(-4); // get last 4 characters of the filename
             if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-              this.pushIfNotExists(this.imageFiles, entry.name)
+              if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
+                this.userEnteredSettings.imageFileNames.push(entry.name)
+                this.imageFileHandles.push(entry)
+              }
               setIndexedDB(
                 { key: entry.name, value: entry }
               )
             } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-              this.pushIfNotExists(this.audioFiles, entry.name)
+              if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
+                this.userEnteredSettings.audioFileNames.push(entry.name)
+                this.audioFileHandles.push(entry)
+              }
               setIndexedDB(
                 { key: entry.name, value: entry }
               )
@@ -219,12 +224,6 @@ export default {
       })
     },
 
-    pushIfNotExists(array, value) {
-      if (!array.some(value)) {
-        array.push(value)
-      }
-    },
-
     async writeFile(fileHandle, contents) {
       // Create a FileSystemWritableFileStream to write to.
       const writable = await fileHandle.createWritable();
@@ -232,12 +231,6 @@ export default {
       await writable.write(contents);
       // Close the file and write the contents to disk.
       await writable.close();
-    },
-    getImageNames() {
-      return this.imageFiles;
-    },
-    getAudioNames() {
-      return this.audioFiles;
     },
     async verifyPermission(fileHandle, readWrite) {
       const options = {};
@@ -260,18 +253,22 @@ export default {
   async mounted() {
     const theme = useTheme();
     theme.global.name.value = 'mainTheme';
-    this.audioFiles = await getIndexedDB('audioFiles') || []
-    this.imageFiles = await getIndexedDB('imageFiles') || []
-    this.directoryHandle = await getIndexedDB('directory') || null
-    // const permitted = await this.verifyPermission(this.settingsFileHandle)
-    // if (permitted) {
-    //   try {
-    //     const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-    //     this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
-    //   } catch (e) {
-    //     console.log(e)
-    //   }
-    // }
+    this.directoryHandle = await getIndexedDB('directoryHandle') || null
+    if (this.directoryHandle) {
+      const permitted = await this.verifyPermission(this.directoryHandle)
+      if (permitted) {
+        try {
+          this.audioFilesNames.forEach(async (audioFileName, idx) => {
+            this.audioFileHandles[idx] = await getIndexedDB(audioFileName);
+          })
+          this.imageFileNames.forEach(async (imageFileName, idx) => {
+            this.imageFileHandles[idx] = await getIndexedDB(imageFileName);
+          })
+        } catch (e) {
+          console.log(e)
+        }
+      }
+    }
   }
 }
 </script>
