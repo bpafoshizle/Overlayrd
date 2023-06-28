@@ -3,18 +3,15 @@
     <v-card class="mx-auto" max-width="900" outlined>
       <v-form v-model="valid" @submit.prevent="submit">
         <v-expansion-panels>
-          <v-expansion-panel>
+          <v-expansion-panel v-on:click="loadFileHandles()">
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
-              Alert Media and Settings Directory
+              Alert Media Directory
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <directory-location-input v-model="directoryHandle" button-text="Choose Directory"
                 @directorySelected="directorySelected($event)" />
               <v-chip v-if="directoryHandle" class="ma-2" color="primary" text-color="white">
                 Selected Directory: {{ directoryHandle.name }}
-              </v-chip>
-              <v-chip v-if="settingsFileHandle" class="ma-2" color="primary" text-color="white">
-                Settings File: {{ settingsFileHandle.name }}
               </v-chip>
             </v-expansion-panel-text>
           </v-expansion-panel>
@@ -27,19 +24,17 @@
                 <v-row>
                   <v-col cols="12" md="6">
                     <v-text-field v-model="userEnteredSettings.twitchClientId" :rules="twitchClientIdRules" :counter="30"
-                      label="Twitch Client ID" required></v-text-field>
+                      :type="'password'" label="Twitch Client ID" required></v-text-field>
                   </v-col>
-
                   <v-col cols="12" md="6">
                     <v-text-field v-model="userEnteredSettings.twitchClientSecret" :rules="twitchClientSecretRules"
-                      :counter="30" label="Twitch Client Secret" required></v-text-field>
+                      :counter="30" :type="'password'" label="Twitch Client Secret" required></v-text-field>
                   </v-col>
                 </v-row>
               </v-container>
             </v-expansion-panel-text>
           </v-expansion-panel>
-
-          <v-expansion-panel>
+          <v-expansion-panel v-on:click="loadFileHandles()">
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
               Twitch Subscripton Details
             </v-expansion-panel-title>
@@ -56,17 +51,17 @@
                   </v-col>
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
-                    <v-select variant="underlined" label="Image" :items="imageFiles" item-title="name"
-                      v-model="userEnteredSettings.twitchEvents[i].imageName" color="primary" />
-                    <v-select variant="underlined" label="Audio" :items="audioFiles" item-title="name"
-                      v-model="userEnteredSettings.twitchEvents[i].audioName" color="primary" />
+                    <v-select variant="underlined" label="Image" :items="userEnteredSettings.imageFileNames"
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].imageFileName" color="primary" />
+                    <v-select variant="underlined" label="Audio" :items="userEnteredSettings.audioFileNames"
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].audioFileName" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-        <v-btn color="primary" type="submit" block class="mt-2">Save Settings</v-btn>
+        <v-btn color="primary" type="submit" block class="mt-2">Validate Settings</v-btn>
         <v-btn color="primary" @click="authorizeTwitch" block class="mt-2">Authorize Twitch</v-btn>
       </v-form>
     </v-card>
@@ -77,7 +72,7 @@
 import { useTheme } from 'vuetify'
 import DirectoryLocationInput from './DirectoryLocationInput.vue'
 import { mapWritableState, mapState } from 'pinia'
-import { useSettingsStore } from '../stores/settings'
+import { useSettingsStore, setIndexedDB, getIndexedDB } from '../stores/settings'
 
 export default {
   components: {
@@ -85,6 +80,9 @@ export default {
   },
   data() {
     return {
+      // directoryHandle: null,
+      // audioFileHandles: [],
+      // imageFileHandles: [],
       valid: false,
       twitchClientIdRules: [
         value => {
@@ -147,10 +145,9 @@ export default {
     // gives access to this.settings inside the component and allows setting it
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapWritableState(useSettingsStore, ['twitchConnectivity']),
-    ...mapWritableState(useSettingsStore, ['imageFiles']),
-    ...mapWritableState(useSettingsStore, ['audioFiles']),
-    ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
     ...mapWritableState(useSettingsStore, ['directoryHandle']),
+    // ...mapWritableState(useSettingsStore, ['audioFileHandles']),
+    // ...mapWritableState(useSettingsStore, ['imageFileHandles']),
     ...mapState(useSettingsStore, {
       getPermissionsString(store) {
         return store.getPermissionsString;
@@ -160,8 +157,8 @@ export default {
 
   methods: {
     async submit(event) {
+      //TODO: Validate the settings
       const results = await event
-      await this.writeFile(this.settingsFileHandle, JSON.stringify(this.userEnteredSettings, null, 2));
     },
 
     async authorizeTwitch(event) {
@@ -175,45 +172,44 @@ export default {
     },
 
     async directorySelected(handle) {
-      this.directoryHandle = handle
+      setIndexedDB(
+        { key: 'directoryHandle', value: handle }
+      )
+      this.directoryHandle = handle;
+      this.userEnteredSettings.directoryName = handle.name;
 
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
-          if (entry.name === 'settings.json') {
-            // Set up the settings file
-            this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json');
+          const extension = entry.name.slice(-4); // get last 4 characters of the filename
+          if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
+            if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
+              this.userEnteredSettings.imageFileNames.push(entry.name)
+              // this.pushIfNotExists(this.imageFileHandles, entry, 'name')
 
-            const permitted = await this.verifyPermission(this.settingsFileHandle)
-            if (permitted) {
-              try {
-                const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
-                this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
-              } catch (e) {
-                console.log(e)
-              }
+              // this.userEnteredSettings.twitchEvents.filter(
+              //   (twitchEvent) => twitchEvent.imageFileName === entry.name
+              // ).imageFileHandle = entry;
+
             }
-            continue;
-          }
-          else {
-            const extension = entry.name.slice(-4); // get last 4 characters of the filename
-            if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-              this.pushIfNotExists(this.imageFiles, entry, 'name')
-            } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-              this.pushIfNotExists(this.audioFiles, entry, 'name')
+            setIndexedDB(
+              { key: entry.name, value: entry }
+            )
+          } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
+            if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
+              this.userEnteredSettings.audioFileNames.push(entry.name)
+              // this.pushIfNotExists(this.audioFileHandles, entry, 'name')
+
+              // this.userEnteredSettings.twitchEvents.filter(
+              //   (twitchEvent) => twitchEvent.audioFileName === entry.name
+              // ).audioFileHandle = entry;
+
             }
+            let fileHandle = await setIndexedDB(
+              { key: entry.name, value: entry }
+            )
           }
         }
-      }
-
-      if (!this.settingsFileHandle) {
-        this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json', { create: true });
-      }
-      else {
-        this.userEnteredSettings.twitchEvents.forEach((twitchEvent) => {
-          twitchEvent.imageFileHandle = this.imageFiles.find((imageFile) => imageFile.name === twitchEvent.imageName);
-          twitchEvent.audioFileHandle = this.audioFiles.find((audioFile) => audioFile.name === twitchEvent.audioName);
-        })
       }
     },
 
@@ -231,12 +227,7 @@ export default {
       // Close the file and write the contents to disk.
       await writable.close();
     },
-    getImageNames() {
-      return this.imageFiles.map((imageFile) => imageFile.name);
-    },
-    getAudioNames() {
-      return this.audioFiles.map((audioFile) => audioFile.name);
-    },
+
     async verifyPermission(fileHandle, readWrite) {
       const options = {};
       if (readWrite) {
@@ -252,12 +243,34 @@ export default {
       }
       // The user didn't grant permission, so return false.
       return false;
+    },
+
+    async loadFileHandles() {
+      if (this.directoryHandle) {
+        const permitted = await this.verifyPermission(this.directoryHandle)
+        if (permitted) {
+          // try {
+          //   // Set audioFileHandles local object and on the twitchEvents structure
+          //   this.userEnteredSettings.audioFileNames.forEach(async (audioFileName, idx) => {
+          //     this.audioFileHandles[idx] = await getIndexedDB(audioFileName);
+          //   })
+          //   // Set imageFileHandles local object and on the twitchEvents structure
+          //   this.userEnteredSettings.imageFileNames.forEach(async (imageFileName, idx) => {
+          //     this.imageFileHandles[idx] = await getIndexedDB(imageFileName);
+          //   })
+          // } catch (e) {
+          //   console.log(e)
+          // }
+          console.log('Got permission to access the directory')
+        }
+      }
     }
   },
 
-  mounted() {
+  async mounted() {
     const theme = useTheme();
     theme.global.name.value = 'mainTheme';
+    this.directoryHandle = await getIndexedDB('directoryHandle') || null
   }
 }
 </script>
