@@ -52,9 +52,9 @@
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
                     <v-select variant="underlined" label="Image" :items="userEnteredSettings.imageFileNames"
-                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].imageName" color="primary" />
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].imageFileName" color="primary" />
                     <v-select variant="underlined" label="Audio" :items="userEnteredSettings.audioFileNames"
-                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].audioName" color="primary" />
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].audioFileName" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
@@ -80,9 +80,9 @@ export default {
   },
   data() {
     return {
-      directoryHandle: null,
-      audioFileHandles: [],
-      imageFileHandles: [],
+      // directoryHandle: null,
+      // audioFileHandles: [],
+      // imageFileHandles: [],
       valid: false,
       twitchClientIdRules: [
         value => {
@@ -145,7 +145,9 @@ export default {
     // gives access to this.settings inside the component and allows setting it
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapWritableState(useSettingsStore, ['twitchConnectivity']),
-    ...mapWritableState(useSettingsStore, ['settingsFileHandle']),
+    ...mapWritableState(useSettingsStore, ['directoryHandle']),
+    // ...mapWritableState(useSettingsStore, ['audioFileHandles']),
+    // ...mapWritableState(useSettingsStore, ['imageFileHandles']),
     ...mapState(useSettingsStore, {
       getPermissionsString(store) {
         return store.getPermissionsString;
@@ -183,7 +185,12 @@ export default {
           if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
             if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
               this.userEnteredSettings.imageFileNames.push(entry.name)
-              this.pushIfNotExists(this.imageFileHandles, entry, 'name')
+              // this.pushIfNotExists(this.imageFileHandles, entry, 'name')
+
+              // this.userEnteredSettings.twitchEvents.filter(
+              //   (twitchEvent) => twitchEvent.imageFileName === entry.name
+              // ).imageFileHandle = entry;
+
             }
             setIndexedDB(
               { key: entry.name, value: entry }
@@ -191,12 +198,16 @@ export default {
           } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
             if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
               this.userEnteredSettings.audioFileNames.push(entry.name)
-              this.pushIfNotExists(this.audioFileHandles, entry, 'name')
+              // this.pushIfNotExists(this.audioFileHandles, entry, 'name')
+
+              // this.userEnteredSettings.twitchEvents.filter(
+              //   (twitchEvent) => twitchEvent.audioFileName === entry.name
+              // ).audioFileHandle = entry;
+
             }
             let fileHandle = await setIndexedDB(
               { key: entry.name, value: entry }
             )
-
           }
         }
       }
@@ -216,6 +227,7 @@ export default {
       // Close the file and write the contents to disk.
       await writable.close();
     },
+
     async verifyPermission(fileHandle, readWrite) {
       const options = {};
       if (readWrite) {
@@ -232,29 +244,26 @@ export default {
       // The user didn't grant permission, so return false.
       return false;
     },
+
     async loadFileHandles() {
       if (this.directoryHandle) {
         const permitted = await this.verifyPermission(this.directoryHandle)
         if (permitted) {
-          try {
-            this.userEnteredSettings.audioFileNames.forEach(async (audioFileName, idx) => {
-              this.audioFileHandles[idx] = await getIndexedDB(audioFileName);
-            })
-            this.userEnteredSettings.imageFileNames.forEach(async (imageFileName, idx) => {
-              this.imageFileHandles[idx] = await getIndexedDB(imageFileName);
-            })
-            this.assignFileHandlesToEventDataStructures();
-          } catch (e) {
-            console.log(e)
-          }
+          // try {
+          //   // Set audioFileHandles local object and on the twitchEvents structure
+          //   this.userEnteredSettings.audioFileNames.forEach(async (audioFileName, idx) => {
+          //     this.audioFileHandles[idx] = await getIndexedDB(audioFileName);
+          //   })
+          //   // Set imageFileHandles local object and on the twitchEvents structure
+          //   this.userEnteredSettings.imageFileNames.forEach(async (imageFileName, idx) => {
+          //     this.imageFileHandles[idx] = await getIndexedDB(imageFileName);
+          //   })
+          // } catch (e) {
+          //   console.log(e)
+          // }
+          console.log('Got permission to access the directory')
         }
       }
-    },
-    async assignFileHandlesToEventDataStructures() {
-      this.userEnteredSettings.twitchEvents.forEach(async (twitchEvent) => {
-        twitchEvent.imageFileHandle = await getIndexedDB(twitchEvent.imageName);
-        twitchEvent.audioFileHandle = await getIndexedDB(twitchEvent.audioName);
-      })
     }
   },
 

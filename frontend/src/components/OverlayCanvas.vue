@@ -14,7 +14,7 @@
 <script>
 import { useTheme } from 'vuetify'
 import { mapWritableState, mapState } from 'pinia'
-import { useSettingsStore } from '../stores/settings'
+import { useSettingsStore, getIndexedDB } from '../stores/settings'
 
 export default {
   data() {
@@ -103,7 +103,7 @@ export default {
         });
         //console.log(response);
         const data = await response.json();
-        console.log(data);
+        //console.log(data);
       });
     },
 
@@ -288,11 +288,11 @@ export default {
   async created() {
     console.log(`Created Component OverlayCanvas`);
     this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
-      twitchEvent.imageFile = URL.createObjectURL(await twitchEvent.imageFileHandle.getFile());
-      twitchEvent.audioFile = URL.createObjectURL(await twitchEvent.audioFileHandle.getFile());
+      let imageFile = await (await getIndexedDB(twitchEvent.imageFileName)).getFile();
+      let audioFile = await (await getIndexedDB(twitchEvent.audioFileName)).getFile();
+      twitchEvent.imageFile = URL.createObjectURL(imageFile);
+      twitchEvent.audioFile = URL.createObjectURL(audioFile);
     });
-
-
   },
 
   mounted() {
