@@ -1,4 +1,4 @@
-<p align="center" background="black"><img src=frontend/src/assets/logo.png width=300></p>
+<p align="center" background-color:"black"><img src=frontend/src/assets/logo.png width=300></p>
 
 --------------------------------------------------------------------------------
 
