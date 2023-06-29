@@ -1,28 +1,30 @@
-# socket-stream
+<img src=frontend/src/assets/logo.png width=300>
+
+--------------------------------------------------------------------------------
+
+# Overlayrd
 
 ## Overview
-Event subscription and overlay solution for streamers on a budget
 
-Plan is to leverage newer (still beta) WebSocket events capability of initially Twitch to avoid subscription fees a la streamlabs and streamelements. I'm surprised there isn't already a solution for this. 
+Overlayerd is a streaming solution for overlaying custom images and audio that can be triggered by events (e.g. from Twitch) as well as other stream content (video, auddio). Overlayrd is developed by streamers, for streamers, especially those on a budget who don't want to spend their hard earned cash on services to make their streams. 
 
-## Last status 2023-03-11
+## Features
 
-WebSocket connection implemented on front end. Back end subscriptions implemented. Just need to generate events to test handling.
-
-To do:
-* Add ability to refresh user token via [refresh token](https://dev.twitch.tv/docs/authentication/refresh-tokens/)
-* Add sqllite to store state
-* Add react app to configure
-  * Way to set up broadcaster and events to follow
-  * Way to configure app client id and secret
-  * Way to configure graphics and audio
-  * Implement Oauth user authorization code flow in React (done in simple html)
+* Configure custom overlay images and audio sound effects and connect them to twitch events.
+* Authentication with Twitch
+* Real time event driven connection with Twitch
 
 
-* Tap into video and audio streams
-* Add ML
+## Roadmap
+
+* Tap into video and audio streams from OBS
+* Add CV - Automated Kill Counter for Call of Duty
+* Add audio2text model to allow events triggered from keywords audio channels
 * Profit :moneybag:
 * Advanced OBS controls
+
+
+## Some Debugging Stuff for the Devs
 
 Using twitch cli to generate Oauth user tokens atm. To configure with client ID and secret use:
 ```

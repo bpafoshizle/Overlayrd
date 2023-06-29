@@ -24,6 +24,24 @@
         <v-btn flat v-for="item in menuItems" :key="item.title" :to="item.path">
           <v-icon left dark class="mx-2">{{ item.icon }}</v-icon>
           {{ item.title }}
+
+
+          <v-menu v-if="showEventDropdown(item.path)" activator="parent">
+            <template v-slot:activator="{ attr }">
+              <v-btn v-bind="attr">
+                Events
+                <v-icon right>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item v-for="(event) in userEnteredSettings.twitchEvents" :key="event.imageId"
+                :value="event.imageId">
+                <v-list-item-title>{{ event.text }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+
+
         </v-btn>
       </v-toolbar-items>
     </v-toolbar>
@@ -34,6 +52,9 @@
 </template>
 
 <script>
+import { mapWritableState } from 'pinia'
+import { useSettingsStore } from './stores/settings'
+
 // @ is an alias to /src
 export default {
   name: "App",
@@ -58,6 +79,7 @@ export default {
     },
   },
   computed: {
+    ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     isAuthenticated() {
       return this.$store.getters.isAuthenticated
     },
@@ -70,7 +92,12 @@ export default {
         // show navigation toolbar on all other pages
         return meta.showNav !== false;
       }
-    }
+    },
+    showEventDropdown() {
+      return (itemPath) => {
+        return this.$route.path === '/positioning' && itemPath === '/positioning';
+      }
+    },
   },
   mounted() {
     // get the height of the navigation toolbar

@@ -295,10 +295,11 @@ export default {
     });
   },
 
-  mounted() {
+  async mounted() {
     console.log(`Mounted Component OverlayCanvas`)
     const theme = useTheme();
     theme.global.name.value = 'overlayTheme';
+    this.directoryHandle = await getIndexedDB('directoryHandle') || null
     this.listenEvents('PROD');
     //this.loopDrawAlert();
   },
