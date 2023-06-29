@@ -1,10 +1,8 @@
-<img src=frontend/src/assets/logo.png width=300>
+<div text-align:center><img src=frontend/src/assets/logo.png width=300></div>
 
 --------------------------------------------------------------------------------
 
 # Overlayrd
-
-## Overview
 
 Overlayerd is a streaming solution for overlaying custom images and audio that can be triggered by events (e.g. from Twitch) as well as other stream content (video, auddio). Overlayrd is developed by streamers, for streamers, especially those on a budget who don't want to spend their hard earned cash on services to make their streams. 
 
