@@ -1,4 +1,4 @@
-<p align="center"><img src=frontend/src/assets/logo.png width=300></p>
+<p align="center" background="black"><img src=frontend/src/assets/logo.png width=300></p>
 
 --------------------------------------------------------------------------------
 
@@ -8,7 +8,7 @@ Overlayerd is a streaming solution for overlaying custom images and audio that c
 
 ## Features
 
-* Configure custom overlay images and audio sound effects and connect them to twitch events.
+* Configure custom overlay images and audio sound effects and connect them to twitch events
 * Authentication with Twitch
 * Real time event driven connection with Twitch
 
