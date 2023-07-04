@@ -3,7 +3,7 @@
     <v-container v-if="showFilesNotLoaded">\
       <v-row align="center" no-gutters style="height: 150px;">
         <v-col align="center">
-          <v-chip class="ma-2" color="error" variant="elevated" v-if="showFilesNotLoaded" @click="selectDirectory">
+          <v-chip class="ma-2" color="error" variant="elevated" @click="selectDirectory">
             <v-icon start icon="mdi-file-document-remove"></v-icon>
             Overlayerd: Files not loaded
           </v-chip>
@@ -37,6 +37,7 @@ export default {
       reconnect: false,
       keepAliveInterval: 0,
       lastKeepAliveTimestamp: 0,
+      filesAccessible: false
     }
   },
 
@@ -52,46 +53,9 @@ export default {
         return store.getCheckedTwitchEvents;
       }
     }),
-    async showFilesNotLoaded() {
-      if (this.directoryHandle) {
-        let directoryPermitted = await this.verifyPermission(this.directoryHandle)
-        // Permission to access the directory
-        if (directoryPermitted) {
-          let filesAccessible = [];
-          this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
-            let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
-            let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
-            let imagePermitted = await this.verifyPermission(imageFileHandle);
-            let audioPermitted = await this.verifyPermission(audioFileHandle);
-            if (imagePermitted && audioPermitted) {
-              filesAccessible.push(true);
-            }
-            else {
-              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`)
-              filesAccessible.push(false);
-            }
-          });
-          // At least one file and all files are accessible
-          if (filesAccessible.length > 0 && filesAccessible.every(Boolean)) {
-            console.log('showFilesNotLoaded: Files accessible');
-            return false;
-          }
-          else {
-            console.log(`showFilesNotLoaded: Files not accessible filesAccessible.length:${filesAccessible.length} filesAccessible.every(Boolean):${filesAccessible.every(Boolean)}`);
-            return true;
-          }
-        }
-        else {
-          // No permission to access the directory 
-          console.log('showFilesNotLoaded: No permission to access the directory');
-          return true;
-        }
-      }
-      else {
-        // No directory handle found
-        console.log('showFilesNotLoaded: No directory handle found');
-        return true;
-      }
+    showFilesNotLoaded() {
+      console.log(`checking if files are accessible: ${this.filesAccessible}`);
+      return !this.filesAccessible;
     }
   },
 
@@ -118,43 +82,100 @@ export default {
       // The user didn't grant permission, so return false.
       return false;
     },
+
     async loadFileHandles() {
       if (this.directoryHandle) {
-        let directoryPermitted = await this.verifyPermission(this.directoryHandle)
+        let directoryPermitted = await this.verifyPermission(this.directoryHandle);
         if (directoryPermitted) {
-          console.log('Got permission to access the directory')
-          this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
+          console.log('Got permission to access the directory');
+          let allFilePermissions = [];
+          await Promise.all(this.getCheckedTwitchEvents.map(async (twitchEvent) => {
             let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
             let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
             let imagePermitted = await this.verifyPermission(imageFileHandle);
             let audioPermitted = await this.verifyPermission(audioFileHandle);
             if (imagePermitted && audioPermitted) {
               console.log(`Got permission to access ${twitchEvent.imageFileName} and ${twitchEvent.audioFileName}`);
+              allFilePermissions.push(true);
               let imageFile = await imageFileHandle.getFile();
               twitchEvent.imageFile = URL.createObjectURL(imageFile);
               let audioFile = await audioFileHandle.getFile();
               twitchEvent.audioFile = URL.createObjectURL(audioFile);
-              setIndexedDB(
-                { key: twitchEvent.imageFileName, value: imageFileHandle }
-              )
-              setIndexedDB(
-                { key: twitchEvent.audioFileName, value: audioFileHandle }
-              )
-            }
-            else {
+              await setIndexedDB({ key: twitchEvent.imageFileName, value: imageFileHandle });
+              await setIndexedDB({ key: twitchEvent.audioFileName, value: audioFileHandle });
+            } else {
               console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`);
+              allFilePermissions.push(false);
             }
-          });
-        }
-        else {
-          console.log('No permission to access the directory')
-        }
-      }
-      else {
-        console.log('No directory handle found')
-      }
+          }));
 
+          if (allFilePermissions.length > 0 && allFilePermissions.every(Boolean)) {
+            console.log('All files accessible: loadFileHandles');
+            this.filesAccessible = true;
+          } else {
+            console.log('Not all files accessible: loadFileHandles');
+            console.log(allFilePermissions);
+            this.filesAccessible = false;
+          }
+        } else {
+          console.log('No permission to access the directory');
+        }
+      } else {
+        console.log('No directory handle found');
+      }
     },
+
+    // async loadFileHandles() {
+    //   if (this.directoryHandle) {
+    //     let directoryPermitted = await this.verifyPermission(this.directoryHandle)
+    //     if (directoryPermitted) {
+    //       console.log('Got permission to access the directory')
+    //       let allFilePermissions = [];
+    //       await this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
+    //         let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
+    //         let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
+    //         let imagePermitted = await this.verifyPermission(imageFileHandle);
+    //         let audioPermitted = await this.verifyPermission(audioFileHandle);
+    //         if (imagePermitted && audioPermitted) {
+    //           console.log(`Got permission to access ${twitchEvent.imageFileName} and ${twitchEvent.audioFileName}`);
+    //           allFilePermissions.push(true);
+    //           let imageFile = await imageFileHandle.getFile();
+    //           twitchEvent.imageFile = URL.createObjectURL(imageFile);
+    //           let audioFile = await audioFileHandle.getFile();
+    //           twitchEvent.audioFile = URL.createObjectURL(audioFile);
+    //           await setIndexedDB(
+    //             { key: twitchEvent.imageFileName, value: imageFileHandle }
+    //           )
+    //           await setIndexedDB(
+    //             { key: twitchEvent.audioFileName, value: audioFileHandle }
+    //           )
+    //         }
+    //         else {
+    //           console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`);
+    //           allFilePermissions.push(false);
+    //         }
+    //       });
+
+    //       if (allFilePermissions.length > 0 && allFilePermissions.every(Boolean)) {
+    //         console.log('All files accessible: loadFileHandles');
+    //         this.filesAccessible = true;
+    //       }
+    //       else {
+    //         console.log('Not all files accessible: loadFileHandles');
+    //         console.log(allFilePermissions)
+    //         this.filesAccessible = false;
+    //       }
+
+    //     }
+    //     else {
+    //       console.log('No permission to access the directory')
+    //     }
+    //   }
+    //   else {
+    //     console.log('No directory handle found')
+    //   }
+
+    // },
     async getTwitchAppAccessToken() {
       const response = await fetch(`${this.twitchConnectivity.twitchIDUrl}/oauth2/token`, {
         method: 'POST',
@@ -398,7 +419,26 @@ export default {
 
   async created() {
     this.directoryHandle = await getIndexedDB('directoryHandle') || null;
+    this.filesAccessible = false;
     await this.loadFileHandles();
+    let allFilePermissions = [];
+    await this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
+      let imageFileHandle = await getIndexedDB(twitchEvent.imageFileName);
+      let audioFileHandle = await getIndexedDB(twitchEvent.audioFileName);
+      let imagePermitted = await this.verifyPermission(imageFileHandle);
+      let audioPermitted = await this.verifyPermission(audioFileHandle);
+      if (imagePermitted && audioPermitted) {
+        allFilePermissions.push(true);
+        console.log("HEYO!")
+      } else {
+        allFilePermissions.push(false);
+        console.log("HEYO YOURSELF!")
+      }
+    });
+    if (allFilePermissions.length > 0 && allFilePermissions.every(Boolean)) {
+      console.log('All files accessible: created');
+      this.filesAccessible = true;
+    }
     console.log(`Created Component OverlayCanvas`);
   },
 
