@@ -1,12 +1,22 @@
 <template>
   <div>
-    <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight"
-      background="none"></canvas>
+    <v-container v-if="showFilesNotLoaded">\
+      <v-row align="center" no-gutters style="height: 150px;">
+        <v-col align="center">
+          <v-chip class="ma-2" color="error" variant="elevated" v-if="showFilesNotLoaded" @click="selectDirectory">
+            <v-icon start icon="mdi-file-document-remove"></v-icon>
+            Overlayerd: Files not loaded
+          </v-chip>
+        </v-col>
+      </v-row>
+    </v-container>
+    <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight" background="none"
+      v-if="!showFilesNotLoaded"></canvas>
     <div style="display:none;">
-      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
-        :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
-      <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
-        :volume="twitchEvent.audioVolume" />
+      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :ref="twitchEvent.imageId"
+        :src="twitchEvent.imageFile" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
+      <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :ref="twitchEvent.audioId"
+        :src="twitchEvent.audioFile" :volume="twitchEvent.audioVolume" />
     </div>
   </div>
 </template>
@@ -14,7 +24,7 @@
 <script>
 import { useTheme } from 'vuetify'
 import { mapWritableState, mapState } from 'pinia'
-import { useSettingsStore, getIndexedDB } from '../stores/settings'
+import { useSettingsStore, getIndexedDB, setIndexedDB } from '../stores/settings'
 
 export default {
   data() {
@@ -35,15 +45,116 @@ export default {
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapState(useSettingsStore, ['overlayProps']),
     ...mapState(useSettingsStore, ['twitchConnectivity']),
+    ...mapWritableState(useSettingsStore, ['directoryHandle']),
     ...mapState(useSettingsStore, ['twitchTemporaries']),
     ...mapState(useSettingsStore, {
       getCheckedTwitchEvents(store) {
         return store.getCheckedTwitchEvents;
       }
-    })
+    }),
+    async showFilesNotLoaded() {
+      if (this.directoryHandle) {
+        let directoryPermitted = await this.verifyPermission(this.directoryHandle)
+        // Permission to access the directory
+        if (directoryPermitted) {
+          let filesAccessible = [];
+          this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
+            let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
+            let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
+            let imagePermitted = await this.verifyPermission(imageFileHandle);
+            let audioPermitted = await this.verifyPermission(audioFileHandle);
+            if (imagePermitted && audioPermitted) {
+              filesAccessible.push(true);
+            }
+            else {
+              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`)
+              filesAccessible.push(false);
+            }
+          });
+          // At least one file and all files are accessible
+          if (filesAccessible.length > 0 && filesAccessible.every(Boolean)) {
+            console.log('showFilesNotLoaded: Files accessible');
+            return false;
+          }
+          else {
+            console.log(`showFilesNotLoaded: Files not accessible filesAccessible.length:${filesAccessible.length} filesAccessible.every(Boolean):${filesAccessible.every(Boolean)}`);
+            return true;
+          }
+        }
+        else {
+          // No permission to access the directory 
+          console.log('showFilesNotLoaded: No permission to access the directory');
+          return true;
+        }
+      }
+      else {
+        // No directory handle found
+        console.log('showFilesNotLoaded: No directory handle found');
+        return true;
+      }
+    }
   },
 
   methods: {
+    async selectDirectory() {
+      console.log('selecting directory');
+      this.directoryHandle = await window.showDirectoryPicker();
+      console.log(`Picked directory ${this.directoryHandle.name}`);
+      await this.loadFileHandles();
+    },
+    async verifyPermission(fileHandle, readWrite) {
+      const options = {};
+      if (readWrite) {
+        options.mode = 'readwrite';
+      }
+      // Check if permission was already granted. If so, return true.
+      if ((await fileHandle.queryPermission(options)) === 'granted') {
+        return true;
+      }
+      // Request permission. If the user grants permission, return true.
+      if ((await fileHandle.requestPermission(options)) === 'granted') {
+        return true;
+      }
+      // The user didn't grant permission, so return false.
+      return false;
+    },
+    async loadFileHandles() {
+      if (this.directoryHandle) {
+        let directoryPermitted = await this.verifyPermission(this.directoryHandle)
+        if (directoryPermitted) {
+          console.log('Got permission to access the directory')
+          this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
+            let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
+            let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
+            let imagePermitted = await this.verifyPermission(imageFileHandle);
+            let audioPermitted = await this.verifyPermission(audioFileHandle);
+            if (imagePermitted && audioPermitted) {
+              console.log(`Got permission to access ${twitchEvent.imageFileName} and ${twitchEvent.audioFileName}`);
+              let imageFile = await imageFileHandle.getFile();
+              twitchEvent.imageFile = URL.createObjectURL(imageFile);
+              let audioFile = await audioFileHandle.getFile();
+              twitchEvent.audioFile = URL.createObjectURL(audioFile);
+              setIndexedDB(
+                { key: twitchEvent.imageFileName, value: imageFileHandle }
+              )
+              setIndexedDB(
+                { key: twitchEvent.audioFileName, value: audioFileHandle }
+              )
+            }
+            else {
+              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`);
+            }
+          });
+        }
+        else {
+          console.log('No permission to access the directory')
+        }
+      }
+      else {
+        console.log('No directory handle found')
+      }
+
+    },
     async getTwitchAppAccessToken() {
       const response = await fetch(`${this.twitchConnectivity.twitchIDUrl}/oauth2/token`, {
         method: 'POST',
@@ -286,24 +397,18 @@ export default {
   },
 
   async created() {
+    this.directoryHandle = await getIndexedDB('directoryHandle') || null;
+    await this.loadFileHandles();
     console.log(`Created Component OverlayCanvas`);
-    this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
-      let imageFile = await (await getIndexedDB(twitchEvent.imageFileName)).getFile();
-      let audioFile = await (await getIndexedDB(twitchEvent.audioFileName)).getFile();
-      twitchEvent.imageFile = URL.createObjectURL(imageFile);
-      twitchEvent.audioFile = URL.createObjectURL(audioFile);
-    });
   },
 
   async mounted() {
     console.log(`Mounted Component OverlayCanvas`)
     const theme = useTheme();
     theme.global.name.value = 'overlayTheme';
-    this.directoryHandle = await getIndexedDB('directoryHandle') || null
     this.listenEvents('PROD');
     //this.loopDrawAlert();
   },
-
 }
 </script>
 

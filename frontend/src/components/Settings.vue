@@ -176,21 +176,37 @@ export default {
       // Set up the audio and image file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
-          const extension = entry.name.slice(-4); // get last 4 characters of the filename
-          if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-            if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
-              this.userEnteredSettings.imageFileNames.push(entry.name)
+          if (entry.name === 'settings.json') {
+            // Set up the settings file
+            this.settingsFileHandle = await this.directoryHandle.getFileHandle('settings.json');
+            const permitted = await this.verifyPermission(this.settingsFileHandle)
+            if (permitted) {
+              try {
+                const fileSettings = JSON.parse(await (await this.settingsFileHandle.getFile()).text());
+                this.userEnteredSettings = { ...this.userEnteredSettings, ...fileSettings };
+              } catch (e) {
+                console.log(e)
+              }
             }
-            setIndexedDB(
-              { key: entry.name, value: entry }
-            )
-          } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
-            if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
-              this.userEnteredSettings.audioFileNames.push(entry.name)
+            continue;
+          }
+          else {
+            const extension = entry.name.slice(-4); // get last 4 characters of the filename
+            if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
+              if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
+                this.userEnteredSettings.imageFileNames.push(entry.name)
+              }
+              setIndexedDB(
+                { key: entry.name, value: entry }
+              )
+            } else if (extension === ".mp3" || extension === ".wav" || extension === ".ogg") {
+              if (!this.userEnteredSettings.audioFileNames.includes(entry.name)) {
+                this.userEnteredSettings.audioFileNames.push(entry.name)
+              }
+              setIndexedDB(
+                { key: entry.name, value: entry }
+              )
             }
-            let fileHandle = await setIndexedDB(
-              { key: entry.name, value: entry }
-            )
           }
         }
       }
