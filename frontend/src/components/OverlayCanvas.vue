@@ -14,9 +14,10 @@
       v-if="!showFilesNotLoaded"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :ref="twitchEvent.imageId"
-        :src="twitchEvent.imageFile" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" />
+        :src="twitchEvent.imageFile" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" @load="loadedImage"
+        @error="errorImage" />
       <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :ref="twitchEvent.audioId"
-        :src="twitchEvent.audioFile" :volume="twitchEvent.audioVolume" />
+        :src="twitchEvent.audioFile" :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
     </div>
   </div>
 </template>
@@ -37,11 +38,12 @@ export default {
       reconnect: false,
       keepAliveInterval: 0,
       lastKeepAliveTimestamp: 0,
-      filesAccessible: false
+      filesAccessible: true
     }
   },
 
   computed: {
+
     // gives access to settings inside the component
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapState(useSettingsStore, ['overlayProps']),
@@ -53,6 +55,7 @@ export default {
         return store.getCheckedTwitchEvents;
       }
     }),
+
     showFilesNotLoaded() {
       console.log(`checking if files are accessible: ${this.filesAccessible}`);
       return !this.filesAccessible;
@@ -60,12 +63,32 @@ export default {
   },
 
   methods: {
+
+    async loadedImage(event) {
+      console.log(`loaded image: ${event.target.id}`);
+    },
+
+    async errorImage(event) {
+      console.log(`error loading image: ${event.target.id}`);
+      this.filesAccessible = false;
+    },
+
+    async loadedAudio(event) {
+      console.log(`loaded audio: ${event.target.id}`);
+    },
+
+    async errorAudio(event) {
+      console.log(`error loading audio: ${event.target.id}`);
+      this.filesAccessible = false;
+    },
+
     async selectDirectory() {
       console.log('selecting directory');
       this.directoryHandle = await window.showDirectoryPicker();
       console.log(`Picked directory ${this.directoryHandle.name}`);
       await this.loadFileHandles();
     },
+
     async verifyPermission(fileHandle, readWrite) {
       const options = {};
       if (readWrite) {
@@ -125,57 +148,6 @@ export default {
       }
     },
 
-    // async loadFileHandles() {
-    //   if (this.directoryHandle) {
-    //     let directoryPermitted = await this.verifyPermission(this.directoryHandle)
-    //     if (directoryPermitted) {
-    //       console.log('Got permission to access the directory')
-    //       let allFilePermissions = [];
-    //       await this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
-    //         let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
-    //         let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
-    //         let imagePermitted = await this.verifyPermission(imageFileHandle);
-    //         let audioPermitted = await this.verifyPermission(audioFileHandle);
-    //         if (imagePermitted && audioPermitted) {
-    //           console.log(`Got permission to access ${twitchEvent.imageFileName} and ${twitchEvent.audioFileName}`);
-    //           allFilePermissions.push(true);
-    //           let imageFile = await imageFileHandle.getFile();
-    //           twitchEvent.imageFile = URL.createObjectURL(imageFile);
-    //           let audioFile = await audioFileHandle.getFile();
-    //           twitchEvent.audioFile = URL.createObjectURL(audioFile);
-    //           await setIndexedDB(
-    //             { key: twitchEvent.imageFileName, value: imageFileHandle }
-    //           )
-    //           await setIndexedDB(
-    //             { key: twitchEvent.audioFileName, value: audioFileHandle }
-    //           )
-    //         }
-    //         else {
-    //           console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`);
-    //           allFilePermissions.push(false);
-    //         }
-    //       });
-
-    //       if (allFilePermissions.length > 0 && allFilePermissions.every(Boolean)) {
-    //         console.log('All files accessible: loadFileHandles');
-    //         this.filesAccessible = true;
-    //       }
-    //       else {
-    //         console.log('Not all files accessible: loadFileHandles');
-    //         console.log(allFilePermissions)
-    //         this.filesAccessible = false;
-    //       }
-
-    //     }
-    //     else {
-    //       console.log('No permission to access the directory')
-    //     }
-    //   }
-    //   else {
-    //     console.log('No directory handle found')
-    //   }
-
-    // },
     async getTwitchAppAccessToken() {
       const response = await fetch(`${this.twitchConnectivity.twitchIDUrl}/oauth2/token`, {
         method: 'POST',
@@ -194,6 +166,7 @@ export default {
       this.twitchTemporaries.twitchAppAccessToken = data.access_token;
       console.log(`app access token: ${this.twitchTemporaries.twitchAppAccessToken}`);
     },
+
     async getTwitchBroadcasterID() {
       const response = await fetch(`${this.twitchConnectivity.twitchHelixUrl}/users?login=${this.userEnteredSettings.twitchBroadcasterName}`, {
         method: 'GET',
@@ -209,6 +182,7 @@ export default {
       this.twitchTemporaries.twitchBroadcasterID = data.data[0].id;
       console.log(`broadcaster id: ${this.twitchTemporaries.twitchBroadcasterID}`);
     },
+
     async subscribeToEvents() {
       await this.getTwitchAppAccessToken();
       await this.getTwitchBroadcasterID();
@@ -419,26 +393,6 @@ export default {
 
   async created() {
     this.directoryHandle = await getIndexedDB('directoryHandle') || null;
-    this.filesAccessible = false;
-    await this.loadFileHandles();
-    let allFilePermissions = [];
-    await this.getCheckedTwitchEvents.forEach(async (twitchEvent) => {
-      let imageFileHandle = await getIndexedDB(twitchEvent.imageFileName);
-      let audioFileHandle = await getIndexedDB(twitchEvent.audioFileName);
-      let imagePermitted = await this.verifyPermission(imageFileHandle);
-      let audioPermitted = await this.verifyPermission(audioFileHandle);
-      if (imagePermitted && audioPermitted) {
-        allFilePermissions.push(true);
-        console.log("HEYO!")
-      } else {
-        allFilePermissions.push(false);
-        console.log("HEYO YOURSELF!")
-      }
-    });
-    if (allFilePermissions.length > 0 && allFilePermissions.every(Boolean)) {
-      console.log('All files accessible: created');
-      this.filesAccessible = true;
-    }
     console.log(`Created Component OverlayCanvas`);
   },
 
