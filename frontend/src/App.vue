@@ -34,13 +34,12 @@
               </v-btn>
             </template>
             <v-list>
-              <v-list-item v-for="(event) in userEnteredSettings.twitchEvents" :key="event.imageId"
-                :value="event.imageId">
+              <v-list-item v-for="(event) in getCheckedTwitchEvents" :key="event.imageId" :value="event.imageId"
+                @click="positionEventSelected(event.id, $event)">
                 <v-list-item-title>{{ event.text }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
-
 
         </v-btn>
       </v-toolbar-items>
@@ -52,8 +51,9 @@
 </template>
 
 <script>
-import { mapWritableState } from 'pinia'
+import { mapState, mapWritableState } from 'pinia'
 import { useSettingsStore } from './stores/settings'
+import { useDatabus } from './stores/databus'
 
 // @ is an alias to /src
 export default {
@@ -73,13 +73,21 @@ export default {
       navBarHeight: 0,
     }
   },
+
   watch: {
     group() {
       this.drawer = false
     },
   },
+
   computed: {
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
+    ...mapState(useSettingsStore, {
+      getCheckedTwitchEvents(store) {
+        return store.getCheckedTwitchEvents;
+      }
+    }),
+    ...mapWritableState(useDatabus, ['positioningSelectedEvent']),
     isAuthenticated() {
       return this.$store.getters.isAuthenticated
     },
@@ -99,19 +107,7 @@ export default {
       }
     },
   },
-  mounted() {
-    // get the height of the navigation toolbar
-    const navBar = document.querySelector('.v-toolbar');
-    if (navBar) {
-      this.navBarHeight = navBar.offsetHeight;
-    }
-    // listen for mouse enter/leave events on the navigation toolbar area
-    document.addEventListener('mousemove', this.handleMouseMove);
-  },
-  beforeDestroy() {
-    // clean up event listener
-    document.removeEventListener('mousemove', this.handleMouseMove);
-  },
+
   methods: {
     handleMouseMove(event) {
       // only update isHovering if the mouse is over the navigation toolbar area
@@ -121,6 +117,26 @@ export default {
         this.isHovering = false;
       }
     },
+
+    positionEventSelected(eventId, event) {
+      console.log(`event selected for positioning: ${eventId}`);
+      this.positioningSelectedEvent = eventId;
+    },
+  },
+
+  mounted() {
+    // get the height of the navigation toolbar
+    const navBar = document.querySelector('.v-toolbar');
+    if (navBar) {
+      this.navBarHeight = navBar.offsetHeight;
+    }
+    // listen for mouse enter/leave events on the navigation toolbar area
+    document.addEventListener('mousemove', this.handleMouseMove);
+  },
+
+  beforeDestroy() {
+    // clean up event listener
+    document.removeEventListener('mousemove', this.handleMouseMove);
   }
 };
 </script>
