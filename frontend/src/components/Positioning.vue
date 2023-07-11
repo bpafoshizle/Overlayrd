@@ -10,7 +10,7 @@
         </v-col>
       </v-row>
     </v-container>
-    <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight"
+    <canvas id="bgcanvasid" ref="bgcanvasref" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight"
       background="none"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
@@ -39,6 +39,7 @@ export default {
     positioningSelectedEvent(newEvent, oldEvent) {
       console.log(`positioningSelectedEvent previous: ${oldEvent}`);
       console.log(`positioningSelectedEvent current: ${newEvent}`);
+      this.setupImage(newEvent);
     }
   },
 
@@ -141,6 +142,198 @@ export default {
         console.log('No directory handle found');
       }
     },
+
+    setupImage(eventId) {
+      console.log('setupImage');
+      let imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
+      let image = document.getElementById(imageId);
+      // let audio = document.getElementById(imageId.audioId);
+      let canvas = document.querySelector('#bgcanvasid');
+      let ctx = canvas.getContext('2d');
+
+      let offsetX = canvas.offsetLeft;
+      let offsetY = canvas.offsetTop;
+
+      let startX;
+      let startY;
+      let isDown = false;
+
+
+      let pi2 = Math.PI * 2;
+      let resizerRadius = 8;
+      let rr = resizerRadius * resizerRadius;
+      let draggingResizer = { x: 0, y: 0 };
+      let imageX = 50;
+      let imageY = 50;
+      // let imageWidth, imageHeight, imageRight, imageBottom;
+      let imageWidth = image.width;
+      let imageHeight = image.height;
+      let imageRight = imageX + imageWidth
+      let imageBottom = imageY + imageHeight;
+      let draggingImage = false;
+
+      function draw(withAnchors, withBorders) {
+        // clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // log the current state
+        console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, imageRight: ${imageRight}, imageBottom: ${imageBottom}`);
+
+        // draw the image
+        ctx.drawImage(image, 0, 0, image.width, image.height, imageX, imageY, imageWidth, imageHeight);
+
+        // optionally draw the draggable anchors
+        if (withAnchors) {
+          drawDragAnchor(imageX, imageY);
+          drawDragAnchor(imageRight, imageY);
+          drawDragAnchor(imageRight, imageBottom);
+          drawDragAnchor(imageX, imageBottom);
+        }
+
+        // optionally draw the connecting anchor lines
+        if (withBorders) {
+          ctx.beginPath();
+          ctx.moveTo(imageX, imageY);
+          ctx.lineTo(imageRight, imageY);
+          ctx.lineTo(imageRight, imageBottom);
+          ctx.lineTo(imageX, imageBottom);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+
+      function drawDragAnchor(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, resizerRadius, 0, pi2, false);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function anchorHitTest(x, y) {
+
+        var dx, dy;
+
+        // top-left
+        dx = x - imageX;
+        dy = y - imageY;
+        if (dx * dx + dy * dy <= rr) { return (0); }
+        // top-right
+        dx = x - imageRight;
+        dy = y - imageY;
+        if (dx * dx + dy * dy <= rr) { return (1); }
+        // bottom-right
+        dx = x - imageRight;
+        dy = y - imageBottom;
+        if (dx * dx + dy * dy <= rr) { return (2); }
+        // bottom-left
+        dx = x - imageX;
+        dy = y - imageBottom;
+        if (dx * dx + dy * dy <= rr) { return (3); }
+        return (-1);
+
+      }
+
+      function hitImage(x, y) {
+        return (x > imageX && x < imageX + imageWidth && y > imageY && y < imageY + imageHeight);
+      }
+
+      function handleMouseDown(e) {
+        startX = parseInt(e.clientX - offsetX);
+        startY = parseInt(e.clientY - offsetY);
+        draggingResizer = anchorHitTest(startX, startY);
+        draggingImage = draggingResizer < 0 && hitImage(startX, startY);
+      }
+
+      function handleMouseUp(e) {
+        draggingResizer = -1;
+        draggingImage = false;
+        draw(true, false);
+      }
+
+      function handleMouseOut(e) {
+        handleMouseUp(e);
+      }
+
+      function handleMouseMove(e) {
+
+        if (draggingResizer > -1) {
+
+          mouseX = parseInt(e.clientX - offsetX);
+          mouseY = parseInt(e.clientY - offsetY);
+
+          // resize the image
+          switch (draggingResizer) {
+            case 0: //top-left
+              imageX = mouseX;
+              imageWidth = imageRight - mouseX;
+              imageY = mouseY;
+              imageHeight = imageBottom - mouseY;
+              break;
+            case 1: //top-right
+              imageY = mouseY;
+              imageWidth = mouseX - imageX;
+              imageHeight = imageBottom - mouseY;
+              break;
+            case 2: //bottom-right
+              imageWidth = mouseX - imageX;
+              imageHeight = mouseY - imageY;
+              break;
+            case 3: //bottom-left
+              imageX = mouseX;
+              imageWidth = imageRight - mouseX;
+              imageHeight = mouseY - imageY;
+              break;
+          }
+
+          // enforce minimum dimensions of 25x25
+          if (imageWidth < 25) { imageWidth = 25; }
+          if (imageHeight < 25) { imageHeight = 25; }
+
+          // set the image right and bottom
+          imageRight = imageX + imageWidth;
+          imageBottom = imageY + imageHeight;
+
+          // redraw the image with resizing anchors
+          draw(true, true);
+
+        } else if (draggingImage) {
+
+          imageClick = false;
+
+          mouseX = parseInt(e.clientX - offsetX);
+          mouseY = parseInt(e.clientY - offsetY);
+
+          // move the image by the amount of the latest drag
+          var dx = mouseX - startX;
+          var dy = mouseY - startY;
+          imageX += dx;
+          imageY += dy;
+          imageRight += dx;
+          imageBottom += dy;
+          // reset the startXY for next time
+          startX = mouseX;
+          startY = mouseY;
+
+          // redraw the image with border
+          draw(false, true);
+
+        }
+      }
+
+      this.$refs.bgcanvasref.addEventListener('mousedown', function (e) {
+        handleMouseDown(e);
+      });
+      this.$refs.bgcanvasref.addEventListener('mousemove', function (e) {
+        handleMouseMove(e);
+      });
+      this.$refs.bgcanvasref.addEventListener('mouseup', function (e) {
+        handleMouseUp(e);
+      });
+      this.$refs.bgcanvasref.addEventListener('mouseout', function (e) {
+        handleMouseOut(e);
+      });
+    },
+
   },
 
   async mounted() {
