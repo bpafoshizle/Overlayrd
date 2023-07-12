@@ -180,7 +180,7 @@ export default {
         console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, imageRight: ${imageRight}, imageBottom: ${imageBottom}`);
 
         // draw the image
-        ctx.drawImage(image, 0, 0, image.width, image.height, imageX, imageY, imageWidth, imageHeight);
+        ctx.drawImage(image, 0, 0, image.width, image.height);
 
         // optionally draw the draggable anchors
         if (withAnchors) {
@@ -258,8 +258,8 @@ export default {
 
         if (draggingResizer > -1) {
 
-          mouseX = parseInt(e.clientX - offsetX);
-          mouseY = parseInt(e.clientY - offsetY);
+          let mouseX = parseInt(e.clientX - offsetX);
+          let mouseY = parseInt(e.clientY - offsetY);
 
           // resize the image
           switch (draggingResizer) {
@@ -298,10 +298,10 @@ export default {
 
         } else if (draggingImage) {
 
-          imageClick = false;
+          let imageClick = false;
 
-          mouseX = parseInt(e.clientX - offsetX);
-          mouseY = parseInt(e.clientY - offsetY);
+          let mouseX = parseInt(e.clientX - offsetX);
+          let mouseY = parseInt(e.clientY - offsetY);
 
           // move the image by the amount of the latest drag
           var dx = mouseX - startX;
@@ -319,6 +319,10 @@ export default {
 
         }
       }
+
+      image.onload = function () {
+        draw(true, false);
+      };
 
       this.$refs.bgcanvasref.addEventListener('mousedown', function (e) {
         handleMouseDown(e);
@@ -346,6 +350,10 @@ export default {
 </script>
 
 <style>
+#bgcanvasid {
+  border: 1px solid #000;
+}
+
 .v-theme--overlayTheme {
   background: none;
   background-color: rgba(0, 0, 0, 0);
