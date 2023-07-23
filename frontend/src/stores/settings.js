@@ -109,6 +109,14 @@ export const useSettingsStore = defineStore('settings', {
             let result = state.userEnteredSettings.twitchEvents.filter(twitchEvent => twitchEvent.checked);
             let permissions = [...new Set(result.map(twitchEvent => twitchEvent.permission))].filter(n => n).join(' ');
             return permissions;
+        },
+        getCanvasWidth: (state) => {
+            const dpr = window.devicePixelRatio || 1;
+            return state.overlayProps.canvasWidth * dpr;
+        },
+        getCanvasHeight: (state) => {
+            const dpr = window.devicePixelRatio || 1;
+            return state.overlayProps.canvasHeight * dpr;
         }
     },
     persist: true

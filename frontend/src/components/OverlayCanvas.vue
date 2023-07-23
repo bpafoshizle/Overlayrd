@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-container v-if="showFilesNotLoaded">\
+    <v-container v-if="showFilesNotLoaded">
       <v-row align="center" no-gutters style="height: 150px;">
         <v-col align="center">
           <v-chip class="ma-2" color="error" variant="elevated" @click="selectDirectory">

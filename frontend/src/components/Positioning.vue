@@ -10,8 +10,8 @@
         </v-col>
       </v-row>
     </v-container>
-    <canvas id="bgcanvasid" ref="bgcanvasref" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight"
-      background="none"></canvas>
+    <canvas id="bgcanvasid" ref="bgcanvasref" :width="getCanvasWidth" :height="getCanvasHeight"
+      :style="{ width: getCanvasWidth + 'px', height: getCanvasHeight + 'px' }" background="none"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
         :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" @load="loadedImage" @error="errorImage" />
@@ -51,7 +51,13 @@ export default {
     ...mapState(useSettingsStore, {
       getCheckedTwitchEvents(store) {
         return store.getCheckedTwitchEvents;
-      }
+      },
+      getCanvasWidth(store) {
+        return store.getCanvasWidth;
+      },
+      getCanvasHeight(store) {
+        return store.getCanvasHeight;
+      },
     }),
     ...mapState(useDatabus, ['positioningSelectedEvent']),
 
@@ -145,14 +151,15 @@ export default {
 
     setupImage(eventId) {
       console.log('setupImage');
-      let imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
-      let image = document.getElementById(imageId);
+      const dpr = window.devicePixelRatio || 1;
+      const imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
+      const origImage = document.getElementById(imageId);
       // let audio = document.getElementById(imageId.audioId);
-      let canvas = document.querySelector('#bgcanvasid');
-      let ctx = canvas.getContext('2d');
+      const canvas = document.querySelector('#bgcanvasid');
+      const ctx = canvas.getContext('2d');
 
-      let offsetX = canvas.offsetLeft;
-      let offsetY = canvas.offsetTop;
+      const offsetX = canvas.offsetLeft;
+      const offsetY = canvas.offsetTop;
 
       let startX;
       let startY;
@@ -160,27 +167,46 @@ export default {
 
 
       let pi2 = Math.PI * 2;
-      let resizerRadius = 8;
+      let resizerRadius = 16;
       let rr = resizerRadius * resizerRadius;
       let draggingResizer = { x: 0, y: 0 };
       let imageX = 50;
       let imageY = 50;
-      // let imageWidth, imageHeight, imageRight, imageBottom;
-      let imageWidth = image.width;
-      let imageHeight = image.height;
-      let imageRight = imageX + imageWidth
-      let imageBottom = imageY + imageHeight;
+      let imageWidth, imageHeight, imageRight, imageBottom;
       let draggingImage = false;
+
+      let img = new Image();
+      img.onload = function () {
+        imageWidth = origImage.width;
+        imageHeight = origImage.height;
+        imageRight = imageX + imageWidth;
+        imageBottom = imageY + imageHeight;
+        draw(true, false);
+      };
+      img.src = origImage.src;
+
+      function logCanvasInfo() {
+        console.log('Canvas width:', canvas.width);
+        console.log('Canvas height:', canvas.height);
+        console.log('Canvas offsetLeft:', canvas.offsetLeft);
+        console.log('Canvas offsetTop:', canvas.offsetTop);
+      }
+
+      //log canvas info
+      logCanvasInfo();
 
       function draw(withAnchors, withBorders) {
         // clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // log the current state
-        console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, imageRight: ${imageRight}, imageBottom: ${imageBottom}`);
+        // console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, imageRight: ${imageRight}, imageBottom: ${imageBottom}`);
 
         // draw the image
-        ctx.drawImage(image, 0, 0, image.width, image.height);
+        ctx.drawImage(img, imageX, imageY, imageWidth, imageHeight);
+
+        // draw the image
+        //ctx.drawImage(img, 0, 0, img.width, img.height, imageX, imageY, imageWidth, imageHeight);
 
         // optionally draw the draggable anchors
         if (withAnchors) {
@@ -238,8 +264,15 @@ export default {
       }
 
       function handleMouseDown(e) {
-        startX = parseInt(e.clientX - offsetX);
-        startY = parseInt(e.clientY - offsetY);
+        // Calculate offsetX and offsetY relative to canvas
+        const testOffsetX = e.pageX - canvas.offsetLeft;
+        const testOffsetY = e.pageY - canvas.offsetTop + canvas.scrollTop;
+
+        console.log('Mouse position (pageX, pageY):', e.pageX, e.pageY);
+        console.log('Mouse position on canvas (testOffsetX, testOffsetY):', testOffsetX, testOffsetY);
+
+        startX = parseInt(e.pageX - offsetX);
+        startY = parseInt(e.pageY - offsetY);
         draggingResizer = anchorHitTest(startX, startY);
         draggingImage = draggingResizer < 0 && hitImage(startX, startY);
       }
@@ -258,8 +291,8 @@ export default {
 
         if (draggingResizer > -1) {
 
-          let mouseX = parseInt(e.clientX - offsetX);
-          let mouseY = parseInt(e.clientY - offsetY);
+          let mouseX = parseInt(e.pageX - offsetX);
+          let mouseY = parseInt(e.pageY - offsetY);
 
           // resize the image
           switch (draggingResizer) {
@@ -300,8 +333,8 @@ export default {
 
           let imageClick = false;
 
-          let mouseX = parseInt(e.clientX - offsetX);
-          let mouseY = parseInt(e.clientY - offsetY);
+          let mouseX = parseInt(e.pageX - offsetX);
+          let mouseY = parseInt(e.pageY - offsetY);
 
           // move the image by the amount of the latest drag
           var dx = mouseX - startX;
@@ -320,22 +353,38 @@ export default {
         }
       }
 
-      image.onload = function () {
-        draw(true, false);
-      };
+      const addEventListeners = () => {
+        this.$refs.bgcanvasref.addEventListener('mousedown', function (e) {
+          handleMouseDown(e);
+        });
+        this.$refs.bgcanvasref.addEventListener('mousemove', function (e) {
+          handleMouseMove(e);
+        });
+        this.$refs.bgcanvasref.addEventListener('mouseup', function (e) {
+          handleMouseUp(e);
+        });
+        this.$refs.bgcanvasref.addEventListener('mouseout', function (e) {
+          handleMouseOut(e);
+        });
+      }
 
-      this.$refs.bgcanvasref.addEventListener('mousedown', function (e) {
-        handleMouseDown(e);
-      });
-      this.$refs.bgcanvasref.addEventListener('mousemove', function (e) {
-        handleMouseMove(e);
-      });
-      this.$refs.bgcanvasref.addEventListener('mouseup', function (e) {
-        handleMouseUp(e);
-      });
-      this.$refs.bgcanvasref.addEventListener('mouseout', function (e) {
-        handleMouseOut(e);
-      });
+      const removeEventListeners = () => {
+        this.$refs.bgcanvasref.removeEventListener('mousedown', function (e) {
+          handleMouseDown(e);
+        });
+        this.$refs.bgcanvasref.removeEventListener('mousemove', function (e) {
+          handleMouseMove(e);
+        });
+        this.$refs.bgcanvasref.removeEventListener('mouseup', function (e) {
+          handleMouseUp(e);
+        });
+        this.$refs.bgcanvasref.removeEventListener('mouseout', function (e) {
+          handleMouseOut(e);
+        });
+      }
+
+      removeEventListeners();
+      addEventListeners();
     },
 
   },
