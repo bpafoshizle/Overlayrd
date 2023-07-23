@@ -32,6 +32,19 @@ export default {
   data() {
     return {
       filesAccessible: true,
+      workingImg: undefined,
+      imageX: 50,
+      imageY: 50,
+      startX: undefined,
+      startY: undefined,
+      pi2: Math.PI * 2,
+      resizerRadius: 8,
+      draggingResizer: { x: 0, y: 0 },
+      imageWidth: undefined,
+      imageHeight: undefined,
+      imageRight: undefined,
+      imageBottom: undefined,
+      draggingImage: false,
     }
   },
 
@@ -64,7 +77,23 @@ export default {
     showFilesNotLoaded() {
       console.log(`checking if files are accessible: ${this.filesAccessible}`);
       return !this.filesAccessible;
-    }
+    },
+
+    getCanvas() {
+      return this.$refs.bgcanvasref;
+    },
+
+    getCanvasContext() {
+      return this.$refs.bgcanvasref.getContext('2d');
+    },
+
+    getCanvasOffsetX() {
+      return this.getCanvas.offsetLeft;
+    },
+
+    getCanvasOffsetY() {
+      return this.getCanvas.offsetTop;
+    },
   },
 
   methods: {
@@ -149,242 +178,198 @@ export default {
       }
     },
 
+    logCanvasInfo() {
+      const canvas = this.getCanvas;
+      console.log('Canvas width:', canvas.width);
+      console.log('Canvas height:', canvas.height);
+      console.log('Canvas offsetLeft:', canvas.offsetLeft);
+      console.log('Canvas offsetTop:', canvas.offsetTop);
+    },
+
+    draw(withAnchors, withBorders) {
+      const canvas = this.getCanvas;
+      const ctx = this.getCanvasContext;
+
+      // clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // draw the image
+      ctx.drawImage(this.workingImg, this.imageX, this.imageY, this.imageWidth, this.imageHeight);
+
+      // optionally draw the draggable anchors
+      if (withAnchors) {
+        this.drawDragAnchor(this.imageX, this.imageY);
+        this.drawDragAnchor(this.imageRight, this.imageY);
+        this.drawDragAnchor(this.imageRight, this.imageBottom);
+        this.drawDragAnchor(this.imageX, this.imageBottom);
+      }
+
+      // optionally draw the connecting anchor lines
+      if (withBorders) {
+        ctx.beginPath();
+        ctx.moveTo(this.imageX, this.imageY);
+        ctx.lineTo(this.imageRight, this.imageY);
+        ctx.lineTo(this.imageRight, this.imageBottom);
+        ctx.lineTo(this.imageX, this.imageBottom);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    },
+
+    drawDragAnchor(x, y) {
+      const ctx = this.getCanvasContext;
+      ctx.beginPath();
+      ctx.arc(x, y, this.resizerRadius, 0, this.pi2, false);
+      ctx.closePath();
+      ctx.fill();
+    },
+
+    anchorHitTest(x, y) {
+      const rr = this.resizerRadius * this.resizerRadius;
+      let dx, dy;
+      // top-left
+      dx = x - this.imageX;
+      dy = y - this.imageY;
+      if (dx * dx + dy * dy <= rr) { return (0); }
+      // top-right
+      dx = x - this.imageRight;
+      dy = y - this.imageY;
+      if (dx * dx + dy * dy <= rr) { return (1); }
+      // bottom-right
+      dx = x - this.imageRight;
+      dy = y - this.imageBottom;
+      if (dx * dx + dy * dy <= rr) { return (2); }
+      // bottom-left
+      dx = x - this.imageX;
+      dy = y - this.imageBottom;
+      if (dx * dx + dy * dy <= rr) { return (3); }
+      return (-1);
+    },
+
+    hitImage(x, y) {
+      return (x > this.imageX && x < this.imageX + this.imageWidth && y > this.imageY && y < this.imageY + this.imageHeight);
+    },
+
+    handleMouseDown(e) {
+      this.startX = parseInt(e.pageX - this.getCanvasOffsetX);
+      this.startY = parseInt(e.pageY - this.getCanvasOffsetY);
+
+      console.log('Mouse position (pageX, pageY):', e.pageX, e.pageY);
+      console.log('Mouse position on canvas (startX, startY):', this.startX, this.startY);
+
+      this.draggingResizer = this.anchorHitTest(this.startX, this.startY);
+      this.draggingImage = this.draggingResizer < 0 && this.hitImage(this.startX, this.startY);
+    },
+
+    handleMouseUp(e) {
+      this.draggingResizer = -1;
+      this.draggingImage = false;
+      this.draw(true, false);
+    },
+
+    handleMouseOut(e) {
+      this.handleMouseUp(e);
+    },
+
+    handleMouseMove(e) {
+      if (this.draggingResizer > -1) {
+
+        const mouseX = parseInt(e.pageX - this.getCanvasOffsetX);
+        const mouseY = parseInt(e.pageY - this.getCanvasOffsetY);
+
+        // resize the image
+        switch (this.draggingResizer) {
+          case 0: //top-left
+            this.imageX = mouseX;
+            this.imageWidth = this.imageRight - mouseX;
+            this.imageY = mouseY;
+            this.imageHeight = this.imageBottom - mouseY;
+            break;
+          case 1: //top-right
+            this.imageY = mouseY;
+            this.imageWidth = mouseX - this.imageX;
+            this.imageHeight = this.imageBottom - mouseY;
+            break;
+          case 2: //bottom-right
+            this.imageWidth = mouseX - this.imageX;
+            this.imageHeight = mouseY - this.imageY;
+            break;
+          case 3: //bottom-left
+            this.imageX = mouseX;
+            this.imageWidth = this.imageRight - mouseX;
+            this.imageHeight = mouseY - this.imageY;
+            break;
+        }
+
+        // enforce minimum dimensions of 25x25
+        if (this.imageWidth < 25) { this.imageWidth = 25; }
+        if (this.imageHeight < 25) { this.imageHeight = 25; }
+
+        // set the image right and bottom
+        this.imageRight = this.imageX + this.imageWidth;
+        this.imageBottom = this.imageY + this.imageHeight;
+
+        // redraw the image with resizing anchors
+        this.draw(true, true);
+
+      } else if (this.draggingImage) {
+
+        const mouseX = parseInt(e.pageX - this.getCanvasOffsetX);
+        const mouseY = parseInt(e.pageY - this.getCanvasOffsetY);
+
+        // move the image by the amount of the latest drag
+        var dx = mouseX - this.startX;
+        var dy = mouseY - this.startY;
+        this.imageX += dx;
+        this.imageY += dy;
+        this.imageRight += dx;
+        this.imageBottom += dy;
+        // reset the startXY for next time
+        this.startX = mouseX;
+        this.startY = mouseY;
+
+        // redraw the image with border
+        this.draw(false, true);
+
+      }
+    },
+
+    addCanvasEventListeners() {
+      this.$refs.bgcanvasref.addEventListener('mousedown', this.handleMouseDown);
+      this.$refs.bgcanvasref.addEventListener('mousemove', this.handleMouseMove);
+      this.$refs.bgcanvasref.addEventListener('mouseup', this.handleMouseUp);
+      this.$refs.bgcanvasref.addEventListener('mouseout', this.handleMouseOut);
+    },
+
+    removeCanvasEventListeners() {
+      this.$refs.bgcanvasref.removeEventListener('mousedown', this.handleMouseDown);
+      this.$refs.bgcanvasref.removeEventListener('mousemove', this.handleMouseMove);
+      this.$refs.bgcanvasref.removeEventListener('mouseup', this.handleMouseUp);
+      this.$refs.bgcanvasref.removeEventListener('mouseout', this.handleMouseOut);
+    },
+
     setupImage(eventId) {
       console.log('setupImage');
-      const dpr = window.devicePixelRatio || 1;
+
       const imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
       const origImage = document.getElementById(imageId);
       // let audio = document.getElementById(imageId.audioId);
-      const canvas = document.querySelector('#bgcanvasid');
-      const ctx = canvas.getContext('2d');
 
-      const offsetX = canvas.offsetLeft;
-      const offsetY = canvas.offsetTop;
-
-      let startX;
-      let startY;
-      let isDown = false;
-
-
-      let pi2 = Math.PI * 2;
-      let resizerRadius = 16;
-      let rr = resizerRadius * resizerRadius;
-      let draggingResizer = { x: 0, y: 0 };
-      let imageX = 50;
-      let imageY = 50;
-      let imageWidth, imageHeight, imageRight, imageBottom;
-      let draggingImage = false;
-
-      let img = new Image();
-      img.onload = function () {
-        imageWidth = origImage.width;
-        imageHeight = origImage.height;
-        imageRight = imageX + imageWidth;
-        imageBottom = imageY + imageHeight;
-        draw(true, false);
+      this.workingImg = new Image();
+      this.workingImg.onload = () => {
+        this.imageWidth = origImage.width;
+        this.imageHeight = origImage.height;
+        this.imageRight = this.imageX + this.imageWidth;
+        this.imageBottom = this.imageY + this.imageHeight;
+        this.draw(true, false);
       };
-      img.src = origImage.src;
-
-      function logCanvasInfo() {
-        console.log('Canvas width:', canvas.width);
-        console.log('Canvas height:', canvas.height);
-        console.log('Canvas offsetLeft:', canvas.offsetLeft);
-        console.log('Canvas offsetTop:', canvas.offsetTop);
-      }
+      this.workingImg.src = origImage.src;
 
       //log canvas info
-      logCanvasInfo();
+      this.logCanvasInfo();
 
-      function draw(withAnchors, withBorders) {
-        // clear the canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // log the current state
-        // console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, imageRight: ${imageRight}, imageBottom: ${imageBottom}`);
-
-        // draw the image
-        ctx.drawImage(img, imageX, imageY, imageWidth, imageHeight);
-
-        // draw the image
-        //ctx.drawImage(img, 0, 0, img.width, img.height, imageX, imageY, imageWidth, imageHeight);
-
-        // optionally draw the draggable anchors
-        if (withAnchors) {
-          drawDragAnchor(imageX, imageY);
-          drawDragAnchor(imageRight, imageY);
-          drawDragAnchor(imageRight, imageBottom);
-          drawDragAnchor(imageX, imageBottom);
-        }
-
-        // optionally draw the connecting anchor lines
-        if (withBorders) {
-          ctx.beginPath();
-          ctx.moveTo(imageX, imageY);
-          ctx.lineTo(imageRight, imageY);
-          ctx.lineTo(imageRight, imageBottom);
-          ctx.lineTo(imageX, imageBottom);
-          ctx.closePath();
-          ctx.stroke();
-        }
-      }
-
-      function drawDragAnchor(x, y) {
-        ctx.beginPath();
-        ctx.arc(x, y, resizerRadius, 0, pi2, false);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      function anchorHitTest(x, y) {
-
-        var dx, dy;
-
-        // top-left
-        dx = x - imageX;
-        dy = y - imageY;
-        if (dx * dx + dy * dy <= rr) { return (0); }
-        // top-right
-        dx = x - imageRight;
-        dy = y - imageY;
-        if (dx * dx + dy * dy <= rr) { return (1); }
-        // bottom-right
-        dx = x - imageRight;
-        dy = y - imageBottom;
-        if (dx * dx + dy * dy <= rr) { return (2); }
-        // bottom-left
-        dx = x - imageX;
-        dy = y - imageBottom;
-        if (dx * dx + dy * dy <= rr) { return (3); }
-        return (-1);
-
-      }
-
-      function hitImage(x, y) {
-        return (x > imageX && x < imageX + imageWidth && y > imageY && y < imageY + imageHeight);
-      }
-
-      function handleMouseDown(e) {
-        // Calculate offsetX and offsetY relative to canvas
-        const testOffsetX = e.pageX - canvas.offsetLeft;
-        const testOffsetY = e.pageY - canvas.offsetTop + canvas.scrollTop;
-
-        console.log('Mouse position (pageX, pageY):', e.pageX, e.pageY);
-        console.log('Mouse position on canvas (testOffsetX, testOffsetY):', testOffsetX, testOffsetY);
-
-        startX = parseInt(e.pageX - offsetX);
-        startY = parseInt(e.pageY - offsetY);
-        draggingResizer = anchorHitTest(startX, startY);
-        draggingImage = draggingResizer < 0 && hitImage(startX, startY);
-      }
-
-      function handleMouseUp(e) {
-        draggingResizer = -1;
-        draggingImage = false;
-        draw(true, false);
-      }
-
-      function handleMouseOut(e) {
-        handleMouseUp(e);
-      }
-
-      function handleMouseMove(e) {
-
-        if (draggingResizer > -1) {
-
-          let mouseX = parseInt(e.pageX - offsetX);
-          let mouseY = parseInt(e.pageY - offsetY);
-
-          // resize the image
-          switch (draggingResizer) {
-            case 0: //top-left
-              imageX = mouseX;
-              imageWidth = imageRight - mouseX;
-              imageY = mouseY;
-              imageHeight = imageBottom - mouseY;
-              break;
-            case 1: //top-right
-              imageY = mouseY;
-              imageWidth = mouseX - imageX;
-              imageHeight = imageBottom - mouseY;
-              break;
-            case 2: //bottom-right
-              imageWidth = mouseX - imageX;
-              imageHeight = mouseY - imageY;
-              break;
-            case 3: //bottom-left
-              imageX = mouseX;
-              imageWidth = imageRight - mouseX;
-              imageHeight = mouseY - imageY;
-              break;
-          }
-
-          // enforce minimum dimensions of 25x25
-          if (imageWidth < 25) { imageWidth = 25; }
-          if (imageHeight < 25) { imageHeight = 25; }
-
-          // set the image right and bottom
-          imageRight = imageX + imageWidth;
-          imageBottom = imageY + imageHeight;
-
-          // redraw the image with resizing anchors
-          draw(true, true);
-
-        } else if (draggingImage) {
-
-          let imageClick = false;
-
-          let mouseX = parseInt(e.pageX - offsetX);
-          let mouseY = parseInt(e.pageY - offsetY);
-
-          // move the image by the amount of the latest drag
-          var dx = mouseX - startX;
-          var dy = mouseY - startY;
-          imageX += dx;
-          imageY += dy;
-          imageRight += dx;
-          imageBottom += dy;
-          // reset the startXY for next time
-          startX = mouseX;
-          startY = mouseY;
-
-          // redraw the image with border
-          draw(false, true);
-
-        }
-      }
-
-      const addEventListeners = () => {
-        this.$refs.bgcanvasref.addEventListener('mousedown', function (e) {
-          handleMouseDown(e);
-        });
-        this.$refs.bgcanvasref.addEventListener('mousemove', function (e) {
-          handleMouseMove(e);
-        });
-        this.$refs.bgcanvasref.addEventListener('mouseup', function (e) {
-          handleMouseUp(e);
-        });
-        this.$refs.bgcanvasref.addEventListener('mouseout', function (e) {
-          handleMouseOut(e);
-        });
-      }
-
-      const removeEventListeners = () => {
-        this.$refs.bgcanvasref.removeEventListener('mousedown', function (e) {
-          handleMouseDown(e);
-        });
-        this.$refs.bgcanvasref.removeEventListener('mousemove', function (e) {
-          handleMouseMove(e);
-        });
-        this.$refs.bgcanvasref.removeEventListener('mouseup', function (e) {
-          handleMouseUp(e);
-        });
-        this.$refs.bgcanvasref.removeEventListener('mouseout', function (e) {
-          handleMouseOut(e);
-        });
-      }
-
-      removeEventListeners();
-      addEventListeners();
+      this.removeCanvasEventListeners();
+      this.addCanvasEventListeners();
     },
 
   },
@@ -393,6 +378,10 @@ export default {
     const theme = useTheme();
     theme.global.name.value = 'overlayTheme';
     this.directoryHandle = await getIndexedDB('directoryHandle') || null;
+  },
+
+  beforeDestroy() {
+    removeCanvasEventListeners();
   },
 
 }
