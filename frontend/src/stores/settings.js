@@ -16,8 +16,6 @@ export async function getIndexedDB(key) {
 export const useSettingsStore = defineStore('settings', {
     state: () => ({
         directoryHandle: null,
-        // audioFileHandles: [],
-        // imageFileHandles: [],
         overlayProps: {
             canvasWidth: 1920,
             canvasHeight: 1080,

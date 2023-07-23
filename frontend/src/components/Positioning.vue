@@ -35,6 +35,8 @@ export default {
       workingImg: undefined,
       imageX: 50,
       imageY: 50,
+      iconTop: 200, // Initial icon position (adjust as needed)
+      iconLeft: 200, // Initial icon position (adjust as needed)
       startX: undefined,
       startY: undefined,
       pi2: Math.PI * 2,
@@ -45,6 +47,11 @@ export default {
       imageRight: undefined,
       imageBottom: undefined,
       draggingImage: false,
+      emojis: [
+        { emoji: '▶️', x: 0, y: 0, width: 24, height: 24 }, // Emoji 1
+        { emoji: '♻', x: 40, y: 0, width: 24, height: 24 }, // Emoji 2
+        // Add more emojis as needed
+      ],
     }
   },
 
@@ -186,36 +193,6 @@ export default {
       console.log('Canvas offsetTop:', canvas.offsetTop);
     },
 
-    draw(withAnchors, withBorders) {
-      const canvas = this.getCanvas;
-      const ctx = this.getCanvasContext;
-
-      // clear the canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // draw the image
-      ctx.drawImage(this.workingImg, this.imageX, this.imageY, this.imageWidth, this.imageHeight);
-
-      // optionally draw the draggable anchors
-      if (withAnchors) {
-        this.drawDragAnchor(this.imageX, this.imageY);
-        this.drawDragAnchor(this.imageRight, this.imageY);
-        this.drawDragAnchor(this.imageRight, this.imageBottom);
-        this.drawDragAnchor(this.imageX, this.imageBottom);
-      }
-
-      // optionally draw the connecting anchor lines
-      if (withBorders) {
-        ctx.beginPath();
-        ctx.moveTo(this.imageX, this.imageY);
-        ctx.lineTo(this.imageRight, this.imageY);
-        ctx.lineTo(this.imageRight, this.imageBottom);
-        ctx.lineTo(this.imageX, this.imageBottom);
-        ctx.closePath();
-        ctx.stroke();
-      }
-    },
-
     drawDragAnchor(x, y) {
       const ctx = this.getCanvasContext;
       ctx.beginPath();
@@ -265,6 +242,7 @@ export default {
       this.draggingResizer = -1;
       this.draggingImage = false;
       this.draw(true, false);
+      this.drawIcons();
     },
 
     handleMouseOut(e) {
@@ -318,8 +296,8 @@ export default {
         const mouseY = parseInt(e.pageY - this.getCanvasOffsetY);
 
         // move the image by the amount of the latest drag
-        var dx = mouseX - this.startX;
-        var dy = mouseY - this.startY;
+        let dx = mouseX - this.startX;
+        let dy = mouseY - this.startY;
         this.imageX += dx;
         this.imageY += dy;
         this.imageRight += dx;
@@ -328,10 +306,49 @@ export default {
         this.startX = mouseX;
         this.startY = mouseY;
 
-        // redraw the image with border
+        // Update the position of the icons based on the image offset
+        this.emojis.forEach((emojiData) => {
+          emojiData.x += dx;
+          emojiData.y += dy;
+        });
+
+        // redraw the image with border and the icons
         this.draw(false, true);
+        this.drawIcons();
 
       }
+    },
+
+    handleEmojiClick(event) {
+      const canvas = this.getCanvas;
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      // Check if the click is inside the bounding box of each emoji
+      this.emojis.forEach((emojiData) => {
+        if (
+          x >= this.iconLeft + emojiData.x &&
+          x <= this.iconLeft + emojiData.x + emojiData.width &&
+          y >= this.iconTop + emojiData.y &&
+          y <= this.iconTop + emojiData.y + emojiData.height
+        ) {
+          // Trigger the appropriate function based on the clicked emoji
+          this.handleEmojiClickEvent(emojiData.emoji);
+        }
+      });
+    },
+
+    handleEmojiClickEvent(emoji) {
+      // Handle the click event based on the clicked emoji
+      if (emoji === '▶️') {
+        // Handle click on the '▶️' emoji
+        console.log('▶️ emoji clicked!');
+      } else if (emoji === '♻') {
+        // Handle click on the '♻' emoji
+        console.log('♻ emoji clicked!');
+      }
+      // Add more cases for other emojis as needed
     },
 
     addCanvasEventListeners() {
@@ -339,6 +356,7 @@ export default {
       this.$refs.bgcanvasref.addEventListener('mousemove', this.handleMouseMove);
       this.$refs.bgcanvasref.addEventListener('mouseup', this.handleMouseUp);
       this.$refs.bgcanvasref.addEventListener('mouseout', this.handleMouseOut);
+      this.$refs.bgcanvasref.addEventListener('click', this.handleEmojiClick);
     },
 
     removeCanvasEventListeners() {
@@ -346,6 +364,48 @@ export default {
       this.$refs.bgcanvasref.removeEventListener('mousemove', this.handleMouseMove);
       this.$refs.bgcanvasref.removeEventListener('mouseup', this.handleMouseUp);
       this.$refs.bgcanvasref.removeEventListener('mouseout', this.handleMouseOut);
+      this.$refs.bgcanvasref.removeEventListener('click', this.handleEmojiClick);
+    },
+
+    drawIcons() {
+      const ctx = this.getCanvasContext;
+      // Customize icon styles (font size, color, etc.)
+      ctx.font = '24px serif'
+
+      // Draw the emojis
+      this.emojis.forEach((emojiData) => {
+        ctx.fillText(emojiData.emoji, this.iconLeft + emojiData.x, this.iconTop + emojiData.y);
+      });
+    },
+
+    draw(withAnchors, withBorders) {
+      const canvas = this.getCanvas;
+      const ctx = this.getCanvasContext;
+
+      // clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // draw the image
+      ctx.drawImage(this.workingImg, this.imageX, this.imageY, this.imageWidth, this.imageHeight);
+
+      // optionally draw the draggable anchors
+      if (withAnchors) {
+        this.drawDragAnchor(this.imageX, this.imageY);
+        this.drawDragAnchor(this.imageRight, this.imageY);
+        this.drawDragAnchor(this.imageRight, this.imageBottom);
+        this.drawDragAnchor(this.imageX, this.imageBottom);
+      }
+
+      // optionally draw the connecting anchor lines
+      if (withBorders) {
+        ctx.beginPath();
+        ctx.moveTo(this.imageX, this.imageY);
+        ctx.lineTo(this.imageRight, this.imageY);
+        ctx.lineTo(this.imageRight, this.imageBottom);
+        ctx.lineTo(this.imageX, this.imageBottom);
+        ctx.closePath();
+        ctx.stroke();
+      }
     },
 
     setupImage(eventId) {
@@ -361,7 +421,10 @@ export default {
         this.imageHeight = origImage.height;
         this.imageRight = this.imageX + this.imageWidth;
         this.imageBottom = this.imageY + this.imageHeight;
+        this.iconTop = this.imageBottom + 40; // Adjust icon position (if needed)
+        this.iconLeft = this.imageX + this.imageWidth / 3; // Adjust icon position (if needed)
         this.draw(true, false);
+        this.drawIcons();
       };
       this.workingImg.src = origImage.src;
 
@@ -372,6 +435,18 @@ export default {
       this.addCanvasEventListeners();
     },
 
+    resetImage() {
+      console.log('resetImage');
+      this.imageWidth = origImage.width;
+      this.imageHeight = origImage.height;
+      this.imageX = (this.getCanvasWidth - this.imageWidth);
+      this.imageY = (this.getCanvasHeight - this.imageHeight);
+      this.imageRight = this.imageX + this.imageWidth;
+      this.imageBottom = this.imageY + this.imageHeight;
+      this.draggingImage = false;
+      this.draw(true, false);
+      this.drawIcons();
+    }
   },
 
   async mounted() {
