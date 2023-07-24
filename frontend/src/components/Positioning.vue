@@ -33,6 +33,7 @@ export default {
     return {
       filesAccessible: true,
       workingImg: undefined,
+      workingAudio: undefined,
       imageX: 50,
       imageY: 50,
       iconTop: 200, // Initial icon position (adjust as needed)
@@ -48,8 +49,8 @@ export default {
       imageBottom: undefined,
       draggingImage: false,
       emojis: [
-        { emoji: '▶️', x: 0, y: 0, width: 24, height: 24 }, // Emoji 1
-        { emoji: '♻', x: 40, y: 0, width: 24, height: 24 }, // Emoji 2
+        { emoji: '▶️', x: 0, y: 0, width: 24, height: 24 },
+        { emoji: '♻', x: 30, y: 0, width: 24, height: 24 },
         // Add more emojis as needed
       ],
     }
@@ -319,11 +320,9 @@ export default {
       }
     },
 
-    handleEmojiClick(event) {
-      const canvas = this.getCanvas;
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+    handleEmojiClick(e) {
+      const x = parseInt(e.pageX - this.getCanvasOffsetX);
+      const y = parseInt(e.pageY - this.getCanvasOffsetY);
 
       // Check if the click is inside the bounding box of each emoji
       this.emojis.forEach((emojiData) => {
@@ -342,8 +341,8 @@ export default {
     handleEmojiClickEvent(emoji) {
       // Handle the click event based on the clicked emoji
       if (emoji === '▶️') {
-        // Handle click on the '▶️' emoji
-        console.log('▶️ emoji clicked!');
+        // play audio
+        this.workingAudio.play();
       } else if (emoji === '♻') {
         // Handle click on the '♻' emoji
         console.log('♻ emoji clicked!');
@@ -370,7 +369,8 @@ export default {
     drawIcons() {
       const ctx = this.getCanvasContext;
       // Customize icon styles (font size, color, etc.)
-      ctx.font = '24px serif'
+      ctx.font = '24px serif';
+      ctx.textBaseline = 'top'; // Important to line up click hitbox with emoji's rendered position
 
       // Draw the emojis
       this.emojis.forEach((emojiData) => {
@@ -412,10 +412,11 @@ export default {
       console.log('setupImage');
 
       const imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
+      const audioId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).audioId;
       const origImage = document.getElementById(imageId);
-      // let audio = document.getElementById(imageId.audioId);
-
+      this.workingAudio = document.getElementById(audioId);
       this.workingImg = new Image();
+
       this.workingImg.onload = () => {
         this.imageWidth = origImage.width;
         this.imageHeight = origImage.height;
