@@ -1,12 +1,71 @@
 <template>
   <div>
     <v-container v-if="showFilesNotLoaded">
-      <v-row align="center" no-gutters style="height: 150px;">
+      <v-row align="center" no-gutters style="height: 40px;">
         <v-col align="center">
           <v-chip class="ma-2" color="error" variant="elevated" @click="selectDirectory">
             <v-icon start icon="mdi-file-document-remove"></v-icon>
             Overlayerd: Files not loaded
           </v-chip>
+        </v-col>
+      </v-row>
+    </v-container>
+    <v-container v-if="imageSetup">
+      <v-row align="center" no-gutters style="height: 50px;">
+        <v-col cols="3">
+          <v-select v-model="selectedFontSize" :items="fontSizes" label="Font Size" outlined></v-select>
+        </v-col>
+        <!-- Vertical Pixel Adjuster -->
+        <v-col cols="3">
+          <v-row>
+            <v-col cols="3">
+              <v-btn @click="adjustVertical('up')">Up</v-btn>
+            </v-col>
+            <v-col cols="3">
+              <v-btn @click="adjustVertical('down')">Down</v-btn>
+            </v-col>
+            <v-col cols="3">
+              <v-text-field v-model="textOffsetVerticalPixels" outlined></v-text-field>
+            </v-col>
+          </v-row>
+        </v-col>
+
+        <!-- Horizontal Pixel Adjuster -->
+        <v-col cols="3">
+          <v-row>
+            <v-col cols="3">
+              <v-btn @click="adjustHorizontal('left')">Left</v-btn>
+            </v-col>
+            <v-col cols="3">
+              <v-btn @click="adjustHorizontal('right')">Right</v-btn>
+            </v-col>
+            <v-col cols="3">
+              <v-text-field v-model="textOffsetHorizontalPixels" outlined></v-text-field>
+            </v-col>
+          </v-row>
+        </v-col>
+        <v-col cols="3">
+          <v-btn @click="showFontColorPicker = !showFontColorPicker" color="primary">
+            <v-icon start icon="mdi-format-color-fill"></v-icon>
+            Font Color
+          </v-btn>
+          <!-- Color picker dialog -->
+          <v-dialog v-model="showFontColorPicker" max-width="400">
+            <v-card color="background">
+              <v-card-title>
+                <span class="headline">Select a Font Color</span>
+              </v-card-title>
+              <v-card-text>
+                <!-- Color picker component -->
+                <v-color-picker v-model="selectedFontColor" :modes="['hex']" />
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <!-- Close button -->
+                <v-btn color="primary" @click="onFontColorSelected">Close</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </v-col>
       </v-row>
     </v-container>
@@ -31,9 +90,17 @@ export default {
 
   data() {
     return {
+      imageSetup: false,
       filesAccessible: true,
       workingImg: undefined,
       workingAudio: undefined,
+      showFontColorPicker: false,
+      exampleText: 'Example Text',
+      fontSizes: [14, 24, 36, 56],
+      textOffsetVerticalPixels: 0,
+      textOffsetHorizontalPixels: 0,
+      selectedFontSize: 56,
+      selectedFontColor: '#000000', // Default color (black)
       imageX: 50,
       imageY: 50,
       iconTop: 200, // Initial icon position (adjust as needed)
@@ -105,6 +172,25 @@ export default {
   },
 
   methods: {
+    adjustVertical(direction) {
+      if (direction === 'up') {
+        this.textOffsetVerticalPixels++;
+      } else if (direction === 'down') {
+        this.textOffsetVerticalPixels--;
+      }
+    },
+    adjustHorizontal(direction) {
+      if (direction === 'left') {
+        this.textOffsetHorizontalPixels--;
+      } else if (direction === 'right') {
+        this.textOffsetHorizontalPixels++;
+      }
+    },
+    onFontColorSelected() {
+      // Close the color picker dialog automatically.
+      this.showFontColorPicker = false;
+      console.log(`Font color selected: ${this.selectedFontColor}`);
+    },
     loadedImage(event) {
       console.log(`loaded image: ${event.target.id}`);
     },
@@ -244,6 +330,7 @@ export default {
       this.draggingImage = false;
       this.draw(true, false);
       this.drawIcons();
+      this.drawText();
     },
 
     handleMouseOut(e) {
@@ -316,6 +403,7 @@ export default {
         // redraw the image with border and the icons
         this.draw(false, true);
         this.drawIcons();
+        this.drawText();
 
       }
     },
@@ -364,6 +452,21 @@ export default {
       this.$refs.bgcanvasref.removeEventListener('mouseup', this.handleMouseUp);
       this.$refs.bgcanvasref.removeEventListener('mouseout', this.handleMouseOut);
       this.$refs.bgcanvasref.removeEventListener('click', this.handleEmojiClick);
+    },
+
+    drawText() {
+      const ctx = this.getCanvasContext;
+      // Customize text styles (font size, color, etc.)
+      ctx.font = `${this.selectedFontSize}px Monaco`; // Adjust the font size and family as needed
+      ctx.fillStyle = this.selectedFontColor; // Adjust text color as needed
+      ctx.textAlign = 'center';
+
+      // Calculate the position to center the text
+      const textX = this.imageX + (this.imageWidth / 2);
+      const textY = this.imageY + (this.imageHeight / 2);
+
+      // Draw the text in the center of the image
+      ctx.fillText(this.exampleText, textX, textY);
     },
 
     drawIcons() {
@@ -426,6 +529,7 @@ export default {
         this.iconLeft = this.imageX + this.imageWidth / 3; // Adjust icon position (if needed)
         this.draw(true, false);
         this.drawIcons();
+        this.drawText();
       };
       this.workingImg.src = origImage.src;
 
@@ -434,6 +538,7 @@ export default {
 
       this.removeCanvasEventListeners();
       this.addCanvasEventListeners();
+      this.imageSetup = true;
     },
 
     resetImage() {
