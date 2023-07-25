@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-container v-if="showFilesNotLoaded">
-      <v-row align="center" no-gutters style="height: 40px;">
+      <v-row>
         <v-col align="center">
           <v-chip class="ma-2" color="error" variant="elevated" @click="selectDirectory">
             <v-icon start icon="mdi-file-document-remove"></v-icon>
@@ -10,62 +10,67 @@
         </v-col>
       </v-row>
     </v-container>
-    <v-container v-if="imageSetup">
-      <v-row align="center" no-gutters style="height: 50px;">
-        <v-col cols="3">
-          <v-select v-model="selectedFontSize" :items="fontSizes" label="Font Size" outlined></v-select>
-        </v-col>
+    <v-container v-if="imageSetup" fill-height>
+      <v-row align="start" style="height: 50px;">
         <!-- Vertical Pixel Adjuster -->
-        <v-col cols="3">
-          <v-row>
-            <v-col cols="3">
-              <v-btn @click="adjustVertical('up')">Up</v-btn>
-            </v-col>
-            <v-col cols="3">
-              <v-btn @click="adjustVertical('down')">Down</v-btn>
-            </v-col>
-            <v-col cols="3">
-              <v-text-field v-model="textOffsetVerticalPixels" outlined></v-text-field>
-            </v-col>
+        <v-col>
+          <v-row align="start" style="height: 50px;">
+            <v-btn @click="adjustVertical('up')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-up-bold" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <v-btn @click="adjustVertical('down')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-down-bold" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <v-text-field v-model="textOffsetVerticalPixels" outlined hide-details class="mx-1 px-1"></v-text-field>
           </v-row>
         </v-col>
 
         <!-- Horizontal Pixel Adjuster -->
-        <v-col cols="3">
+        <v-col>
           <v-row>
-            <v-col cols="3">
-              <v-btn @click="adjustHorizontal('left')">Left</v-btn>
-            </v-col>
-            <v-col cols="3">
-              <v-btn @click="adjustHorizontal('right')">Right</v-btn>
-            </v-col>
-            <v-col cols="3">
-              <v-text-field v-model="textOffsetHorizontalPixels" outlined></v-text-field>
-            </v-col>
+            <v-btn @click="adjustHorizontal('left')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-left-bold" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <v-btn @click="adjustHorizontal('right')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-right-bold" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <v-text-field v-model="textOffsetHorizontalPixels" outlined hide-details class="mx-1 px-1"></v-text-field>
           </v-row>
         </v-col>
-        <v-col cols="3">
-          <v-btn @click="showFontColorPicker = !showFontColorPicker" color="primary">
-            <v-icon start icon="mdi-format-color-fill"></v-icon>
-            Font Color
-          </v-btn>
-          <!-- Color picker dialog -->
-          <v-dialog v-model="showFontColorPicker" max-width="400">
-            <v-card color="background">
-              <v-card-title>
-                <span class="headline">Select a Font Color</span>
-              </v-card-title>
-              <v-card-text>
-                <!-- Color picker component -->
-                <v-color-picker v-model="selectedFontColor" :modes="['hex']" />
-              </v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <!-- Close button -->
-                <v-btn color="primary" @click="onFontColorSelected">Close</v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-dialog>
+
+        <v-col>
+          <v-row>
+            <v-btn @click="showFontColorPicker = !showFontColorPicker" color="primary" height="50">
+              <v-icon icon="mdi-format-color-fill" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <!-- Color picker dialog -->
+            <v-dialog v-model="showFontColorPicker" max-width="400">
+              <v-card color="background">
+                <v-card-title>
+                  <span class="headline">Select a Font Color</span>
+                </v-card-title>
+                <v-card-text>
+                  <!-- Color picker component -->
+                  <v-color-picker v-model="selectedFontColor" :modes="['hex']" />
+                </v-card-text>
+                <v-card-actions>
+                  <!-- Close button -->
+                  <v-btn color="primary" @click="onFontColorSelected">Close</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
+          </v-row>
+        </v-col>
+        <v-col>
+          <v-row>
+            <v-select v-model="selectedFontSize" :items="fontSizes" label="Font Size" outlined hide-details>
+            </v-select>
+          </v-row>
         </v-col>
       </v-row>
     </v-container>
@@ -92,6 +97,7 @@ export default {
     return {
       imageSetup: false,
       filesAccessible: true,
+      origImage: undefined,
       workingImg: undefined,
       workingAudio: undefined,
       showFontColorPicker: false,
@@ -128,7 +134,18 @@ export default {
       console.log(`positioningSelectedEvent previous: ${oldEvent}`);
       console.log(`positioningSelectedEvent current: ${newEvent}`);
       this.setupImage(newEvent);
-    }
+    },
+    textOffsetVerticalPixels(newValue, oldValue) {
+      this.draw(true, false);
+      this.drawIcons();
+      this.drawText();
+    },
+    textOffsetHorizontalPixels(newValue, oldValue) {
+      this.draw(true, false);
+      this.drawIcons();
+      this.drawText();
+    },
+
   },
 
   computed: {
@@ -174,9 +191,9 @@ export default {
   methods: {
     adjustVertical(direction) {
       if (direction === 'up') {
-        this.textOffsetVerticalPixels++;
-      } else if (direction === 'down') {
         this.textOffsetVerticalPixels--;
+      } else if (direction === 'down') {
+        this.textOffsetVerticalPixels++;
       }
     },
     adjustHorizontal(direction) {
@@ -190,6 +207,9 @@ export default {
       // Close the color picker dialog automatically.
       this.showFontColorPicker = false;
       console.log(`Font color selected: ${this.selectedFontColor}`);
+      this.draw(true, false);
+      this.drawIcons();
+      this.drawText();
     },
     loadedImage(event) {
       console.log(`loaded image: ${event.target.id}`);
@@ -282,6 +302,7 @@ export default {
 
     drawDragAnchor(x, y) {
       const ctx = this.getCanvasContext;
+      ctx.fillStyle = "black";
       ctx.beginPath();
       ctx.arc(x, y, this.resizerRadius, 0, this.pi2, false);
       ctx.closePath();
@@ -315,6 +336,8 @@ export default {
     },
 
     handleMouseDown(e) {
+      //log canvas info
+      this.logCanvasInfo();
       this.startX = parseInt(e.pageX - this.getCanvasOffsetX);
       this.startY = parseInt(e.pageY - this.getCanvasOffsetY);
 
@@ -394,23 +417,21 @@ export default {
         this.startX = mouseX;
         this.startY = mouseY;
 
-        // Update the position of the icons based on the image offset
-        this.emojis.forEach((emojiData) => {
-          emojiData.x += dx;
-          emojiData.y += dy;
-        });
-
         // redraw the image with border and the icons
         this.draw(false, true);
         this.drawIcons();
         this.drawText();
-
       }
     },
 
     handleEmojiClick(e) {
       const x = parseInt(e.pageX - this.getCanvasOffsetX);
       const y = parseInt(e.pageY - this.getCanvasOffsetY);
+
+      // Log valid click x min and max and y min and max ranges for each emoji
+      this.emojis.forEach((emojiData) => {
+        console.log(`Emoji: ${emojiData.emoji} x: ${this.iconLeft + emojiData.x} - ${this.iconLeft + emojiData.x + emojiData.width} y: ${this.iconTop + emojiData.y} - ${this.iconTop + emojiData.y + emojiData.height}`);
+      });
 
       // Check if the click is inside the bounding box of each emoji
       this.emojis.forEach((emojiData) => {
@@ -431,8 +452,10 @@ export default {
       if (emoji === '▶️') {
         // play audio
         this.workingAudio.play();
+        console.log('▶️ emoji clicked!');
       } else if (emoji === '♻') {
-        // Handle click on the '♻' emoji
+        // Reset image to original position
+        this.resetImage();
         console.log('♻ emoji clicked!');
       }
       // Add more cases for other emojis as needed
@@ -462,18 +485,22 @@ export default {
       ctx.textAlign = 'center';
 
       // Calculate the position to center the text
-      const textX = this.imageX + (this.imageWidth / 2);
-      const textY = this.imageY + (this.imageHeight / 2);
+      const textX = this.textOffsetHorizontalPixels + this.imageX + (this.imageWidth / 2);
+      const textY = this.textOffsetVerticalPixels + this.imageY + (this.imageHeight / 2);
 
       // Draw the text in the center of the image
       ctx.fillText(this.exampleText, textX, textY);
     },
 
     drawIcons() {
+      this.iconTop = this.imageBottom + 40; // Adjust icon position (if needed)
+      this.iconLeft = this.imageX + 40; // Adjust icon position (if needed)
       const ctx = this.getCanvasContext;
       // Customize icon styles (font size, color, etc.)
-      ctx.font = '24px serif';
+      ctx.font = '26px serif';
+      ctx.fillStyle = "black";
       ctx.textBaseline = 'top'; // Important to line up click hitbox with emoji's rendered position
+      ctx.textAlign = 'left';
 
       // Draw the emojis
       this.emojis.forEach((emojiData) => {
@@ -516,25 +543,20 @@ export default {
 
       const imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
       const audioId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).audioId;
-      const origImage = document.getElementById(imageId);
+      this.origImage = document.getElementById(imageId);
       this.workingAudio = document.getElementById(audioId);
       this.workingImg = new Image();
 
       this.workingImg.onload = () => {
-        this.imageWidth = origImage.width;
-        this.imageHeight = origImage.height;
+        this.imageWidth = this.origImage.width;
+        this.imageHeight = this.origImage.height;
         this.imageRight = this.imageX + this.imageWidth;
         this.imageBottom = this.imageY + this.imageHeight;
-        this.iconTop = this.imageBottom + 40; // Adjust icon position (if needed)
-        this.iconLeft = this.imageX + this.imageWidth / 3; // Adjust icon position (if needed)
         this.draw(true, false);
         this.drawIcons();
         this.drawText();
       };
-      this.workingImg.src = origImage.src;
-
-      //log canvas info
-      this.logCanvasInfo();
+      this.workingImg.src = this.origImage.src;
 
       this.removeCanvasEventListeners();
       this.addCanvasEventListeners();
@@ -543,15 +565,20 @@ export default {
 
     resetImage() {
       console.log('resetImage');
-      this.imageWidth = origImage.width;
-      this.imageHeight = origImage.height;
-      this.imageX = (this.getCanvasWidth - this.imageWidth);
-      this.imageY = (this.getCanvasHeight - this.imageHeight);
+      this.imageWidth = this.origImage.width;
+      this.imageHeight = this.origImage.height;
+      this.imageX = 50;
+      this.imageY = 50;
       this.imageRight = this.imageX + this.imageWidth;
       this.imageBottom = this.imageY + this.imageHeight;
+      this.textOffsetVerticalPixels = 0;
+      this.textOffsetHorizontalPixels = 0;
+      this.selectedFontSize = 56;
+      this.selectedFontColor = '#000000'; // Default color (black)
       this.draggingImage = false;
       this.draw(true, false);
       this.drawIcons();
+      this.drawText();
     }
   },
 
@@ -576,5 +603,20 @@ export default {
 .v-theme--overlayTheme {
   background: none;
   background-color: rgba(0, 0, 0, 0);
+}
+
+/* .v-input--density-compact {
+  --v-input-control-height: 36px;
+  --v-input-padding-top: 0px;
+  --v-input-padding-bottom: 0px;
+  --select-chips-margin-bottom: 0px;
+}
+
+.v-text-field {
+  --v-input-control-height: 36px;
+} */
+
+.v-input__control {
+  height: 50px;
 }
 </style>
