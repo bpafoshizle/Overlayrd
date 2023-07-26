@@ -24,6 +24,23 @@
         <v-btn flat v-for="item in menuItems" :key="item.title" :to="item.path">
           <v-icon left dark class="mx-2">{{ item.icon }}</v-icon>
           {{ item.title }}
+
+
+          <v-menu v-if="showEventDropdown(item.path)" activator="parent">
+            <template v-slot:activator="{ attr }">
+              <v-btn v-bind="attr">
+                Events
+                <v-icon right>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item v-for="(event) in getCheckedTwitchEvents" :key="event.imageId" :value="event.imageId"
+                @click="positionEventSelected(event.id, $event)">
+                <v-list-item-title>{{ event.text }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+
         </v-btn>
       </v-toolbar-items>
     </v-toolbar>
@@ -34,6 +51,10 @@
 </template>
 
 <script>
+import { mapState, mapWritableState } from 'pinia'
+import { useSettingsStore } from './stores/settings'
+import { useDatabus } from './stores/databus'
+
 // @ is an alias to /src
 export default {
   name: "App",
@@ -52,12 +73,21 @@ export default {
       navBarHeight: 0,
     }
   },
+
   watch: {
     group() {
       this.drawer = false
     },
   },
+
   computed: {
+    ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
+    ...mapState(useSettingsStore, {
+      getCheckedTwitchEvents(store) {
+        return store.getCheckedTwitchEvents;
+      }
+    }),
+    ...mapWritableState(useDatabus, ['positioningSelectedEvent']),
     isAuthenticated() {
       return this.$store.getters.isAuthenticated
     },
@@ -70,21 +100,14 @@ export default {
         // show navigation toolbar on all other pages
         return meta.showNav !== false;
       }
-    }
+    },
+    showEventDropdown() {
+      return (itemPath) => {
+        return this.$route.path === '/positioning' && itemPath === '/positioning';
+      }
+    },
   },
-  mounted() {
-    // get the height of the navigation toolbar
-    const navBar = document.querySelector('.v-toolbar');
-    if (navBar) {
-      this.navBarHeight = navBar.offsetHeight;
-    }
-    // listen for mouse enter/leave events on the navigation toolbar area
-    document.addEventListener('mousemove', this.handleMouseMove);
-  },
-  beforeDestroy() {
-    // clean up event listener
-    document.removeEventListener('mousemove', this.handleMouseMove);
-  },
+
   methods: {
     handleMouseMove(event) {
       // only update isHovering if the mouse is over the navigation toolbar area
@@ -94,6 +117,26 @@ export default {
         this.isHovering = false;
       }
     },
+
+    positionEventSelected(eventId, event) {
+      console.log(`event selected for positioning: ${eventId}`);
+      this.positioningSelectedEvent = eventId;
+    },
+  },
+
+  mounted() {
+    // get the height of the navigation toolbar
+    const navBar = document.querySelector('.v-toolbar');
+    if (navBar) {
+      this.navBarHeight = navBar.offsetHeight;
+    }
+    // listen for mouse enter/leave events on the navigation toolbar area
+    document.addEventListener('mousemove', this.handleMouseMove);
+  },
+
+  beforeDestroy() {
+    // clean up event listener
+    document.removeEventListener('mousemove', this.handleMouseMove);
   }
 };
 </script>

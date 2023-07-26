@@ -37,7 +37,7 @@ const router = createRouter({
       name: "twitch-callback",
       component : TwitchCallback,
       meta: {
-        showNav: false, // this route should show the navigation toolbar
+        showNav: false, // this route should not show the navigation toolbar
       }
     },
     {
