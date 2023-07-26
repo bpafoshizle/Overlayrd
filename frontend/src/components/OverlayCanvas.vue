@@ -287,13 +287,14 @@ export default {
         const canvas = document.querySelector('#bgcanvasid');
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = alertTemplate.textColor;
-        ctx.font = '56px Monaco';
+        ctx.font = `${alertTemplate.textSize}px Monaco`;
+        ctx.textAlign = 'center';
         const img = document.querySelector(`#${alertTemplate.imageId}`);
         const props = {
-          imgStartX: (canvas.width - img.width),
-          imgStartY: (canvas.height - img.height),
-          imgWidth: img.width,
-          imgHeight: img.height,
+          imgStartX: alertTemplate.imageX, //(canvas.width - img.width),
+          imgStartY: alertTemplate.imageY, //(canvas.height - img.height),
+          imgWidth: alertTemplate.imageWidth, //img.width,
+          imgHeight: alertTemplate.imageHeight, //img.height,
           imgTextOffsetY: parseInt(alertTemplate.textYOffset),
           imgTextOffsetX: parseInt(alertTemplate.textXOffset),
           textWidth: ctx.measureText(username).width,
@@ -338,8 +339,8 @@ export default {
         ctx.drawImage(document.querySelector(`#${alertTemplate.imageId}`), imgStartX, imgStartY, imgWidth, imgHeight);
         ctx.fillText(
           username,
-          imgStartX + imgTextOffsetX + (imgWidth - textWidth) / 2,
-          imgStartY + imgTextOffsetY
+          imgTextOffsetX + imgStartX + (imgWidth / 2),
+          imgTextOffsetY + imgStartY + (imgHeight / 2)
         );
         if (fadeIn) {
           alpha += delta;

@@ -23,7 +23,8 @@
               <v-icon icon="mdi-arrow-down-bold" size="24"></v-icon>
               <v-icon icon="mdi-format-color-text" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="textOffsetVerticalPixels" outlined hide-details class="mx-1 px-1"></v-text-field>
+            <v-text-field v-model="textOffsetVerticalPixels" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryVerticalPixels"></v-text-field>
           </v-row>
         </v-col>
 
@@ -38,7 +39,8 @@
               <v-icon icon="mdi-arrow-right-bold" size="24"></v-icon>
               <v-icon icon="mdi-format-color-text" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="textOffsetHorizontalPixels" outlined hide-details class="mx-1 px-1"></v-text-field>
+            <v-text-field v-model="textOffsetHorizontalPixels" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryHorizontalPixels"></v-text-field>
           </v-row>
         </v-col>
 
@@ -68,7 +70,8 @@
         </v-col>
         <v-col>
           <v-row>
-            <v-select v-model="selectedFontSize" :items="fontSizes" label="Font Size" outlined hide-details>
+            <v-select v-model="workingTwitchEvent.selectedFontSize" :items="fontSizes" label="Font Size" outlined
+              hide-details>
             </v-select>
           </v-row>
         </v-col>
@@ -78,7 +81,7 @@
       :style="{ width: getCanvasWidth + 'px', height: getCanvasHeight + 'px' }" background="none"></canvas>
     <div style="display:none;">
       <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
-        :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" @load="loadedImage" @error="errorImage" />
+        :width="700" :height="700" @load="loadedImage" @error="errorImage" />
       <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
         :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
     </div>
@@ -98,6 +101,7 @@ export default {
       imageSetup: false,
       filesAccessible: true,
       origImage: undefined,
+      workingTwitchEvent: undefined,
       workingImg: undefined,
       workingAudio: undefined,
       showFontColorPicker: false,
@@ -107,17 +111,11 @@ export default {
       textOffsetHorizontalPixels: 0,
       selectedFontSize: 56,
       selectedFontColor: '#000000', // Default color (black)
-      imageX: 50,
-      imageY: 50,
       iconTop: 200, // Initial icon position (adjust as needed)
       iconLeft: 200, // Initial icon position (adjust as needed)
-      startX: undefined,
-      startY: undefined,
       pi2: Math.PI * 2,
       resizerRadius: 8,
       draggingResizer: { x: 0, y: 0 },
-      imageWidth: undefined,
-      imageHeight: undefined,
       imageRight: undefined,
       imageBottom: undefined,
       draggingImage: false,
@@ -136,14 +134,20 @@ export default {
       this.setupImage(newEvent);
     },
     textOffsetVerticalPixels(newValue, oldValue) {
-      this.draw(true, false);
-      this.drawIcons();
-      this.drawText();
+      console.log(`textOffsetVerticalPixels: ${newValue}`);
+      this.workingTwitchEvent.textYOffset = newValue;
+      this.drawAll();
     },
     textOffsetHorizontalPixels(newValue, oldValue) {
-      this.draw(true, false);
-      this.drawIcons();
-      this.drawText();
+      this.workingTwitchEvent.textXOffset = newValue;
+      this.drawAll();
+    },
+    selectedFontSize(newValue, oldValue) {
+      this.workingTwitchEvent.textSize = newValue;
+      this.drawAll();
+    },
+    selectedFontColor(newValue, oldValue) {
+      this.workingTwitchEvent.textColor = newValue;
     },
 
   },
@@ -189,6 +193,14 @@ export default {
   },
 
   methods: {
+    directEntryVerticalPixels() {
+      this.textOffsetVerticalPixels = parseInt(this.textOffsetVerticalPixels);
+      this.workingTwitchEvent.textYOffset = this.textOffsetVerticalPixels;
+    },
+    directEntryHorizontalPixels() {
+      this.textOffsetHorizontalPixels = parseInt(this.textOffsetHorizontalPixels);
+      this.workingTwitchEvent.textXOffset = this.textOffsetHorizontalPixels;
+    },
     adjustVertical(direction) {
       if (direction === 'up') {
         this.textOffsetVerticalPixels--;
@@ -207,9 +219,7 @@ export default {
       // Close the color picker dialog automatically.
       this.showFontColorPicker = false;
       console.log(`Font color selected: ${this.selectedFontColor}`);
-      this.draw(true, false);
-      this.drawIcons();
-      this.drawText();
+      this.drawAll();
     },
     loadedImage(event) {
       console.log(`loaded image: ${event.target.id}`);
@@ -313,26 +323,26 @@ export default {
       const rr = this.resizerRadius * this.resizerRadius;
       let dx, dy;
       // top-left
-      dx = x - this.imageX;
-      dy = y - this.imageY;
+      dx = x - this.workingTwitchEvent.imageX;
+      dy = y - this.workingTwitchEvent.imageY;
       if (dx * dx + dy * dy <= rr) { return (0); }
       // top-right
       dx = x - this.imageRight;
-      dy = y - this.imageY;
+      dy = y - this.workingTwitchEvent.imageY;
       if (dx * dx + dy * dy <= rr) { return (1); }
       // bottom-right
       dx = x - this.imageRight;
       dy = y - this.imageBottom;
       if (dx * dx + dy * dy <= rr) { return (2); }
       // bottom-left
-      dx = x - this.imageX;
+      dx = x - this.workingTwitchEvent.imageX;
       dy = y - this.imageBottom;
       if (dx * dx + dy * dy <= rr) { return (3); }
       return (-1);
     },
 
     hitImage(x, y) {
-      return (x > this.imageX && x < this.imageX + this.imageWidth && y > this.imageY && y < this.imageY + this.imageHeight);
+      return (x > this.workingTwitchEvent.imageX && x < this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth && y > this.workingTwitchEvent.imageY && y < this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight);
     },
 
     handleMouseDown(e) {
@@ -351,9 +361,7 @@ export default {
     handleMouseUp(e) {
       this.draggingResizer = -1;
       this.draggingImage = false;
-      this.draw(true, false);
-      this.drawIcons();
-      this.drawText();
+      this.drawAll();
     },
 
     handleMouseOut(e) {
@@ -369,34 +377,34 @@ export default {
         // resize the image
         switch (this.draggingResizer) {
           case 0: //top-left
-            this.imageX = mouseX;
-            this.imageWidth = this.imageRight - mouseX;
-            this.imageY = mouseY;
-            this.imageHeight = this.imageBottom - mouseY;
+            this.workingTwitchEvent.imageX = mouseX;
+            this.workingTwitchEvent.imageWidth = this.imageRight - mouseX;
+            this.workingTwitchEvent.imageY = mouseY;
+            this.workingTwitchEvent.imageHeight = this.imageBottom - mouseY;
             break;
           case 1: //top-right
-            this.imageY = mouseY;
-            this.imageWidth = mouseX - this.imageX;
-            this.imageHeight = this.imageBottom - mouseY;
+            this.workingTwitchEvent.imageY = mouseY;
+            this.workingTwitchEvent.imageWidth = mouseX - this.workingTwitchEvent.imageX;
+            this.workingTwitchEvent.imageHeight = this.imageBottom - mouseY;
             break;
           case 2: //bottom-right
-            this.imageWidth = mouseX - this.imageX;
-            this.imageHeight = mouseY - this.imageY;
+            this.workingTwitchEvent.imageWidth = mouseX - this.workingTwitchEvent.imageX;
+            this.workingTwitchEvent.imageHeight = mouseY - this.workingTwitchEvent.imageY;
             break;
           case 3: //bottom-left
-            this.imageX = mouseX;
-            this.imageWidth = this.imageRight - mouseX;
-            this.imageHeight = mouseY - this.imageY;
+            this.workingTwitchEvent.imageX = mouseX;
+            this.workingTwitchEvent.imageWidth = this.imageRight - mouseX;
+            this.workingTwitchEvent.imageHeight = mouseY - this.workingTwitchEvent.imageY;
             break;
         }
 
         // enforce minimum dimensions of 25x25
-        if (this.imageWidth < 25) { this.imageWidth = 25; }
-        if (this.imageHeight < 25) { this.imageHeight = 25; }
+        if (this.workingTwitchEvent.imageWidth < 25) { this.workingTwitchEvent.imageWidth = 25; }
+        if (this.workingTwitchEvent.imageHeight < 25) { this.workingTwitchEvent.imageHeight = 25; }
 
         // set the image right and bottom
-        this.imageRight = this.imageX + this.imageWidth;
-        this.imageBottom = this.imageY + this.imageHeight;
+        this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
+        this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
 
         // redraw the image with resizing anchors
         this.draw(true, true);
@@ -409,8 +417,8 @@ export default {
         // move the image by the amount of the latest drag
         let dx = mouseX - this.startX;
         let dy = mouseY - this.startY;
-        this.imageX += dx;
-        this.imageY += dy;
+        this.workingTwitchEvent.imageX += dx;
+        this.workingTwitchEvent.imageY += dy;
         this.imageRight += dx;
         this.imageBottom += dy;
         // reset the startXY for next time
@@ -477,6 +485,12 @@ export default {
       this.$refs.bgcanvasref.removeEventListener('click', this.handleEmojiClick);
     },
 
+    drawAll() {
+      this.draw(true, false);
+      this.drawIcons();
+      this.drawText();
+    },
+
     drawText() {
       const ctx = this.getCanvasContext;
       // Customize text styles (font size, color, etc.)
@@ -485,8 +499,8 @@ export default {
       ctx.textAlign = 'center';
 
       // Calculate the position to center the text
-      const textX = this.textOffsetHorizontalPixels + this.imageX + (this.imageWidth / 2);
-      const textY = this.textOffsetVerticalPixels + this.imageY + (this.imageHeight / 2);
+      const textX = this.textOffsetHorizontalPixels + this.workingTwitchEvent.imageX + (this.workingTwitchEvent.imageWidth / 2);
+      const textY = this.textOffsetVerticalPixels + this.workingTwitchEvent.imageY + (this.workingTwitchEvent.imageHeight / 2);
 
       // Draw the text in the center of the image
       ctx.fillText(this.exampleText, textX, textY);
@@ -494,7 +508,7 @@ export default {
 
     drawIcons() {
       this.iconTop = this.imageBottom + 40; // Adjust icon position (if needed)
-      this.iconLeft = this.imageX + 40; // Adjust icon position (if needed)
+      this.iconLeft = this.workingTwitchEvent.imageX + 40; // Adjust icon position (if needed)
       const ctx = this.getCanvasContext;
       // Customize icon styles (font size, color, etc.)
       ctx.font = '26px serif';
@@ -516,23 +530,23 @@ export default {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // draw the image
-      ctx.drawImage(this.workingImg, this.imageX, this.imageY, this.imageWidth, this.imageHeight);
+      ctx.drawImage(this.workingImg, this.workingTwitchEvent.imageX, this.workingTwitchEvent.imageY, this.workingTwitchEvent.imageWidth, this.workingTwitchEvent.imageHeight);
 
       // optionally draw the draggable anchors
       if (withAnchors) {
-        this.drawDragAnchor(this.imageX, this.imageY);
-        this.drawDragAnchor(this.imageRight, this.imageY);
+        this.drawDragAnchor(this.workingTwitchEvent.imageX, this.workingTwitchEvent.imageY);
+        this.drawDragAnchor(this.imageRight, this.workingTwitchEvent.imageY);
         this.drawDragAnchor(this.imageRight, this.imageBottom);
-        this.drawDragAnchor(this.imageX, this.imageBottom);
+        this.drawDragAnchor(this.workingTwitchEvent.imageX, this.imageBottom);
       }
 
       // optionally draw the connecting anchor lines
       if (withBorders) {
         ctx.beginPath();
-        ctx.moveTo(this.imageX, this.imageY);
-        ctx.lineTo(this.imageRight, this.imageY);
+        ctx.moveTo(this.workingTwitchEvent.imageX, this.workingTwitchEvent.imageY);
+        ctx.lineTo(this.imageRight, this.workingTwitchEvent.imageY);
         ctx.lineTo(this.imageRight, this.imageBottom);
-        ctx.lineTo(this.imageX, this.imageBottom);
+        ctx.lineTo(this.workingTwitchEvent.imageX, this.imageBottom);
         ctx.closePath();
         ctx.stroke();
       }
@@ -540,21 +554,25 @@ export default {
 
     setupImage(eventId) {
       console.log('setupImage');
-
-      const imageId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).imageId;
-      const audioId = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId).audioId;
+      this.workingTwitchEvent = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId);
+      const imageId = this.workingTwitchEvent.imageId;
+      const audioId = this.workingTwitchEvent.audioId;
       this.origImage = document.getElementById(imageId);
       this.workingAudio = document.getElementById(audioId);
       this.workingImg = new Image();
 
       this.workingImg.onload = () => {
-        this.imageWidth = this.origImage.width;
-        this.imageHeight = this.origImage.height;
-        this.imageRight = this.imageX + this.imageWidth;
-        this.imageBottom = this.imageY + this.imageHeight;
-        this.draw(true, false);
-        this.drawIcons();
-        this.drawText();
+        this.workingTwitchEvent.imageWidth = this.workingTwitchEvent.imageWidth || this.origImage.width;
+        this.workingTwitchEvent.imageHeight = this.workingTwitchEvent.imageHeight || this.origImage.height;
+        this.workingTwitchEvent.imageX = this.workingTwitchEvent.imageX || 50;
+        this.workingTwitchEvent.imageY = this.workingTwitchEvent.imageY || 50;
+        this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
+        this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
+        this.textOffsetVerticalPixels = this.workingTwitchEvent.textYOffset || 0;
+        this.textOffsetHorizontalPixels = this.workingTwitchEvent.textXOffset || 0;
+        this.selectedFontSize = this.workingTwitchEvent.textSize || 56;
+        this.selectedFontColor = this.workingTwitchEvent.textColor || '#000000'; // Default color (black)
+        this.drawAll();
       };
       this.workingImg.src = this.origImage.src;
 
@@ -565,20 +583,18 @@ export default {
 
     resetImage() {
       console.log('resetImage');
-      this.imageWidth = this.origImage.width;
-      this.imageHeight = this.origImage.height;
-      this.imageX = 50;
-      this.imageY = 50;
-      this.imageRight = this.imageX + this.imageWidth;
-      this.imageBottom = this.imageY + this.imageHeight;
+      this.workingTwitchEvent.imageWidth = this.origImage.width;
+      this.workingTwitchEvent.imageHeight = this.origImage.height;
+      this.workingTwitchEvent.imageX = 50;
+      this.workingTwitchEvent.imageY = 50;
+      this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
+      this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
       this.textOffsetVerticalPixels = 0;
       this.textOffsetHorizontalPixels = 0;
       this.selectedFontSize = 56;
       this.selectedFontColor = '#000000'; // Default color (black)
       this.draggingImage = false;
-      this.draw(true, false);
-      this.drawIcons();
-      this.drawText();
+      this.drawAll();
     }
   },
 
