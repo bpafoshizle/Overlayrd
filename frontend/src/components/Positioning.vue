@@ -70,8 +70,7 @@
         </v-col>
         <v-col>
           <v-row>
-            <v-select v-model="workingTwitchEvent.selectedFontSize" :items="fontSizes" label="Font Size" outlined
-              hide-details>
+            <v-select v-model="selectedFontSize" :items="fontSizes" label="Font Size" outlined hide-details>
             </v-select>
           </v-row>
         </v-col>

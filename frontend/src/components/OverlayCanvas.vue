@@ -10,8 +10,12 @@
         </v-col>
       </v-row>
     </v-container>
-    <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight" background="none"
-      v-if="!showFilesNotLoaded"></canvas>
+    <canvas id="bgcanvasid" ref="bgcanvasref" :width="getCanvasWidth" :height="getCanvasHeight"
+      :style="{ width: getCanvasWidth + 'px', height: getCanvasHeight + 'px' }" background="none"
+      v-if="!showFilesNotLoaded">
+    </canvas>
+    <!-- <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight" background="none"
+      v-if="!showFilesNotLoaded"></canvas> -->
     <div style="display:none;">
       <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :ref="twitchEvent.imageId"
         :src="twitchEvent.imageFile" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" @load="loadedImage"
@@ -53,7 +57,13 @@ export default {
     ...mapState(useSettingsStore, {
       getCheckedTwitchEvents(store) {
         return store.getCheckedTwitchEvents;
-      }
+      },
+      getCanvasWidth(store) {
+        return store.getCanvasWidth;
+      },
+      getCanvasHeight(store) {
+        return store.getCanvasHeight;
+      },
     }),
 
     showFilesNotLoaded() {
@@ -289,15 +299,17 @@ export default {
         ctx.fillStyle = alertTemplate.textColor;
         ctx.font = `${alertTemplate.textSize}px Monaco`;
         ctx.textAlign = 'center';
-        const img = document.querySelector(`#${alertTemplate.imageId}`);
+        // log image x and y
+        console.log(`image x: ${alertTemplate.imageX}, image y: ${alertTemplate.imageY}`);
+        // log canvas based placement
+        console.log(`canvas image x: ${(canvas.width - alertTemplate.imageWidth)}, canvas image y: ${canvas.height - alertTemplate.imageHeight}`);
         const props = {
-          imgStartX: alertTemplate.imageX, //(canvas.width - img.width),
-          imgStartY: alertTemplate.imageY, //(canvas.height - img.height),
+          imgStartX: alertTemplate.imageX, //(canvas.width - alertTemplate.imageWidth),
+          imgStartY: alertTemplate.imageY, //(canvas.height - alertTemplate.imageHeight),
           imgWidth: alertTemplate.imageWidth, //img.width,
           imgHeight: alertTemplate.imageHeight, //img.height,
           imgTextOffsetY: parseInt(alertTemplate.textYOffset),
           imgTextOffsetX: parseInt(alertTemplate.textXOffset),
-          textWidth: ctx.measureText(username).width,
           alertAudioId: alertTemplate.audioId
         }
         //console.log(props);
@@ -313,7 +325,6 @@ export default {
         imgHeight,
         imgTextOffsetY,
         imgTextOffsetX,
-        textWidth,
         alertAudioId
       } = calculateImgPlacement();
 
