@@ -12,35 +12,68 @@
     </v-container>
     <v-container v-if="imageSetup" fill-height>
       <v-row align="start" style="height: 50px;">
-        <!-- Vertical Pixel Adjuster -->
+
+        <!-- Vertical Image Pixel Adjuster -->
         <v-col>
           <v-row align="start" style="height: 50px;">
-            <v-btn @click="adjustVertical('up')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustImageVertical('up')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-up-bold" size="24"></v-icon>
-              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+              <v-icon icon="mdi-image" size="24"></v-icon>
             </v-btn>
-            <v-btn @click="adjustVertical('down')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustImageVertical('down')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-down-bold" size="24"></v-icon>
-              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+              <v-icon icon="mdi-image" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="textOffsetVerticalPixels" outlined hide-details class="mx-1 px-1"
-              @keyup.enter="directEntryVerticalPixels"></v-text-field>
+            <v-text-field v-model="imageY" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryImageVertical"></v-text-field>
           </v-row>
         </v-col>
 
-        <!-- Horizontal Pixel Adjuster -->
+        <!-- Horizontal Image Pixel Adjuster -->
         <v-col>
           <v-row>
-            <v-btn @click="adjustHorizontal('left')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustImageHorizontal('left')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-left-bold" size="24"></v-icon>
+              <v-icon icon="mdi-image" size="24"></v-icon>
+            </v-btn>
+            <v-btn @click="adjustImageHorizontal('right')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-right-bold" size="24"></v-icon>
+              <v-icon icon="mdi-image" size="24"></v-icon>
+            </v-btn>
+            <v-text-field v-model="imageX" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryImageHorizontal"></v-text-field>
+          </v-row>
+        </v-col>
+
+        <!-- Vertical Text Pixel Adjuster -->
+        <v-col>
+          <v-row align="start" style="height: 50px;">
+            <v-btn @click="adjustTextVertical('up')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-up-bold" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <v-btn @click="adjustTextVertical('down')" color="primary" height="50" class="mx-1 px-1">
+              <v-icon icon="mdi-arrow-down-bold" size="24"></v-icon>
+              <v-icon icon="mdi-format-color-text" size="24"></v-icon>
+            </v-btn>
+            <v-text-field v-model="textYOffset" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryTextVertical"></v-text-field>
+          </v-row>
+        </v-col>
+
+        <!-- Horizontal Text Pixel Adjuster -->
+        <v-col>
+          <v-row>
+            <v-btn @click="adjustTextHorizontal('left')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-left-bold" size="24"></v-icon>
               <v-icon icon="mdi-format-color-text" size="24"></v-icon>
             </v-btn>
-            <v-btn @click="adjustHorizontal('right')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustTextHorizontal('right')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-right-bold" size="24"></v-icon>
               <v-icon icon="mdi-format-color-text" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="textOffsetHorizontalPixels" outlined hide-details class="mx-1 px-1"
-              @keyup.enter="directEntryHorizontalPixels"></v-text-field>
+            <v-text-field v-model="textXOffset" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryTextHorizontal"></v-text-field>
           </v-row>
         </v-col>
 
@@ -79,9 +112,9 @@
     <canvas id="bgcanvasid" ref="bgcanvasref" :width="getCanvasWidth" :height="getCanvasHeight"
       :style="{ width: getCanvasWidth + 'px', height: getCanvasHeight + 'px' }" background="none"></canvas>
     <div style="display:none;">
-      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile"
+      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile || false"
         :width="700" :height="700" @load="loadedImage" @error="errorImage" />
-      <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile"
+      <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile || false"
         :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
     </div>
   </div>
@@ -106,8 +139,10 @@ export default {
       showFontColorPicker: false,
       exampleText: 'Example Text',
       fontSizes: [14, 24, 36, 56],
-      textOffsetVerticalPixels: 0,
-      textOffsetHorizontalPixels: 0,
+      textYOffset: 0,
+      textXOffset: 0,
+      imageX: 50,
+      imageY: 50,
       selectedFontSize: 56,
       selectedFontColor: '#000000', // Default color (black)
       iconTop: 200, // Initial icon position (adjust as needed)
@@ -115,8 +150,8 @@ export default {
       pi2: Math.PI * 2,
       resizerRadius: 8,
       draggingResizer: { x: 0, y: 0 },
-      imageRight: undefined,
-      imageBottom: undefined,
+      imageRight: 750,
+      imageBottom: 750,
       draggingImage: false,
       emojis: [
         { emoji: '▶️', x: 0, y: 0, width: 24, height: 24 },
@@ -132,12 +167,22 @@ export default {
       console.log(`positioningSelectedEvent current: ${newEvent}`);
       this.setupImage(newEvent);
     },
-    textOffsetVerticalPixels(newValue, oldValue) {
-      console.log(`textOffsetVerticalPixels: ${newValue}`);
+    imageY(newValue, oldValue) {
+      console.log(`imageY: ${newValue}`);
+      this.workingTwitchEvent.imageY = newValue;
+      this.drawAll();
+    },
+    imageX(newValue, oldValue) {
+      console.log(`imageX: ${newValue}`);
+      this.workingTwitchEvent.imageX = newValue;
+      this.drawAll();
+    },
+    textYOffset(newValue, oldValue) {
+      console.log(`textYOffset: ${newValue}`);
       this.workingTwitchEvent.textYOffset = newValue;
       this.drawAll();
     },
-    textOffsetHorizontalPixels(newValue, oldValue) {
+    textXOffset(newValue, oldValue) {
       this.workingTwitchEvent.textXOffset = newValue;
       this.drawAll();
     },
@@ -192,26 +237,44 @@ export default {
   },
 
   methods: {
-    directEntryVerticalPixels() {
-      this.textOffsetVerticalPixels = parseInt(this.textOffsetVerticalPixels);
-      this.workingTwitchEvent.textYOffset = this.textOffsetVerticalPixels;
+    directEntryImageVertical() {
+      this.imageY = parseInt(this.imageY);
     },
-    directEntryHorizontalPixels() {
-      this.textOffsetHorizontalPixels = parseInt(this.textOffsetHorizontalPixels);
-      this.workingTwitchEvent.textXOffset = this.textOffsetHorizontalPixels;
+    directEntryImageHorizontal() {
+      this.imageX = parseInt(this.imageX);
     },
-    adjustVertical(direction) {
+    adjustImageVertical(direction) {
       if (direction === 'up') {
-        this.textOffsetVerticalPixels--;
+        this.imageY--;
       } else if (direction === 'down') {
-        this.textOffsetVerticalPixels++;
+        this.imageY++;
       }
     },
-    adjustHorizontal(direction) {
+    adjustImageHorizontal(direction) {
       if (direction === 'left') {
-        this.textOffsetHorizontalPixels--;
+        this.imageX--;
       } else if (direction === 'right') {
-        this.textOffsetHorizontalPixels++;
+        this.imageX++;
+      }
+    },
+    directEntryTextVertical() {
+      this.textYOffset = parseInt(this.textYOffset);
+    },
+    directEntryTextHorizontal() {
+      this.textXOffset = parseInt(this.textXOffset);
+    },
+    adjustTextVertical(direction) {
+      if (direction === 'up') {
+        this.textYOffset--;
+      } else if (direction === 'down') {
+        this.textYOffset++;
+      }
+    },
+    adjustTextHorizontal(direction) {
+      if (direction === 'left') {
+        this.textXOffset--;
+      } else if (direction === 'right') {
+        this.textXOffset++;
       }
     },
     onFontColorSelected() {
@@ -376,22 +439,22 @@ export default {
         // resize the image
         switch (this.draggingResizer) {
           case 0: //top-left
-            this.workingTwitchEvent.imageX = mouseX;
+            this.imageX = mouseX;
             this.workingTwitchEvent.imageWidth = this.imageRight - mouseX;
             this.workingTwitchEvent.imageY = mouseY;
             this.workingTwitchEvent.imageHeight = this.imageBottom - mouseY;
             break;
           case 1: //top-right
-            this.workingTwitchEvent.imageY = mouseY;
+            this.imageY = mouseY;
             this.workingTwitchEvent.imageWidth = mouseX - this.workingTwitchEvent.imageX;
             this.workingTwitchEvent.imageHeight = this.imageBottom - mouseY;
             break;
           case 2: //bottom-right
-            this.workingTwitchEvent.imageWidth = mouseX - this.workingTwitchEvent.imageX;
+            this.imageWidth = mouseX - this.workingTwitchEvent.imageX;
             this.workingTwitchEvent.imageHeight = mouseY - this.workingTwitchEvent.imageY;
             break;
           case 3: //bottom-left
-            this.workingTwitchEvent.imageX = mouseX;
+            this.imageX = mouseX;
             this.workingTwitchEvent.imageWidth = this.imageRight - mouseX;
             this.workingTwitchEvent.imageHeight = mouseY - this.workingTwitchEvent.imageY;
             break;
@@ -402,8 +465,8 @@ export default {
         if (this.workingTwitchEvent.imageHeight < 25) { this.workingTwitchEvent.imageHeight = 25; }
 
         // set the image right and bottom
-        this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
-        this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
+        // this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
+        // this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
 
         // redraw the image with resizing anchors
         this.draw(true, true);
@@ -416,8 +479,8 @@ export default {
         // move the image by the amount of the latest drag
         let dx = mouseX - this.startX;
         let dy = mouseY - this.startY;
-        this.workingTwitchEvent.imageX += dx;
-        this.workingTwitchEvent.imageY += dy;
+        this.imageX += dx;
+        this.imageY += dy;
         this.imageRight += dx;
         this.imageBottom += dy;
         // reset the startXY for next time
@@ -498,8 +561,8 @@ export default {
       ctx.textAlign = 'center';
 
       // Calculate the position to center the text
-      const textX = this.textOffsetHorizontalPixels + this.workingTwitchEvent.imageX + (this.workingTwitchEvent.imageWidth / 2);
-      const textY = this.textOffsetVerticalPixels + this.workingTwitchEvent.imageY + (this.workingTwitchEvent.imageHeight / 2);
+      const textX = this.textXOffset + this.workingTwitchEvent.imageX + (this.workingTwitchEvent.imageWidth / 2);
+      const textY = this.textYOffset + this.workingTwitchEvent.imageY + (this.workingTwitchEvent.imageHeight / 2);
 
       // Draw the text in the center of the image
       ctx.fillText(this.exampleText, textX, textY);
@@ -551,29 +614,27 @@ export default {
       }
     },
 
-    setupImage(eventId) {
+    async setupImage(eventId) {
       console.log('setupImage');
       this.workingTwitchEvent = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId);
-      const imageId = this.workingTwitchEvent.imageId;
-      const audioId = this.workingTwitchEvent.audioId;
-      this.origImage = document.getElementById(imageId);
-      this.workingAudio = document.getElementById(audioId);
+      this.workingAudio = new Audio(this.workingTwitchEvent.audioFile);
       this.workingImg = new Image();
 
       this.workingImg.onload = () => {
+        console.log("image loaded");
         this.workingTwitchEvent.imageWidth = this.workingTwitchEvent.imageWidth || this.origImage.width;
         this.workingTwitchEvent.imageHeight = this.workingTwitchEvent.imageHeight || this.origImage.height;
-        this.workingTwitchEvent.imageX = this.workingTwitchEvent.imageX || 50;
-        this.workingTwitchEvent.imageY = this.workingTwitchEvent.imageY || 50;
+        this.imageX = this.workingTwitchEvent.imageX || 50;
+        this.imageY = this.workingTwitchEvent.imageY || 50;
         this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
         this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
-        this.textOffsetVerticalPixels = this.workingTwitchEvent.textYOffset || 0;
-        this.textOffsetHorizontalPixels = this.workingTwitchEvent.textXOffset || 0;
+        this.textYOffset = this.workingTwitchEvent.textYOffset || 0;
+        this.textXOffset = this.workingTwitchEvent.textXOffset || 0;
         this.selectedFontSize = this.workingTwitchEvent.textSize || 56;
         this.selectedFontColor = this.workingTwitchEvent.textColor || '#000000'; // Default color (black)
         this.drawAll();
       };
-      this.workingImg.src = this.origImage.src;
+      this.workingImg.src = this.workingTwitchEvent.imageFile;
 
       this.removeCanvasEventListeners();
       this.addCanvasEventListeners();
@@ -582,14 +643,14 @@ export default {
 
     resetImage() {
       console.log('resetImage');
-      this.workingTwitchEvent.imageWidth = this.origImage.width;
-      this.workingTwitchEvent.imageHeight = this.origImage.height;
+      this.workingTwitchEvent.imageWidth = 700;
+      this.workingTwitchEvent.imageHeight = 700;
       this.workingTwitchEvent.imageX = 50;
       this.workingTwitchEvent.imageY = 50;
       this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
       this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
-      this.textOffsetVerticalPixels = 0;
-      this.textOffsetHorizontalPixels = 0;
+      this.textYOffset = 0;
+      this.textXOffset = 0;
       this.selectedFontSize = 56;
       this.selectedFontColor = '#000000'; // Default color (black)
       this.draggingImage = false;

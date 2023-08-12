@@ -18,10 +18,10 @@
       v-if="!showFilesNotLoaded"></canvas> -->
     <div style="display:none;">
       <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :ref="twitchEvent.imageId"
-        :src="twitchEvent.imageFile" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight" @load="loadedImage"
-        @error="errorImage" />
+        :src="twitchEvent.imageFile || false" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight"
+        @load="loadedImage" @error="errorImage" />
       <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :ref="twitchEvent.audioId"
-        :src="twitchEvent.audioFile" :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
+        :src="twitchEvent.audioFile || false" :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
     </div>
   </div>
 </template>
@@ -299,17 +299,13 @@ export default {
         ctx.fillStyle = alertTemplate.textColor;
         ctx.font = `${alertTemplate.textSize}px Monaco`;
         ctx.textAlign = 'center';
-        // log image x and y
-        console.log(`image x: ${alertTemplate.imageX}, image y: ${alertTemplate.imageY}`);
-        // log canvas based placement
-        console.log(`canvas image x: ${(canvas.width - alertTemplate.imageWidth)}, canvas image y: ${canvas.height - alertTemplate.imageHeight}`);
         const props = {
-          imgStartX: alertTemplate.imageX, //(canvas.width - alertTemplate.imageWidth),
-          imgStartY: alertTemplate.imageY, //(canvas.height - alertTemplate.imageHeight),
-          imgWidth: alertTemplate.imageWidth, //img.width,
-          imgHeight: alertTemplate.imageHeight, //img.height,
-          imgTextOffsetY: parseInt(alertTemplate.textYOffset),
-          imgTextOffsetX: parseInt(alertTemplate.textXOffset),
+          imageX: alertTemplate.imageX, //(canvas.width - alertTemplate.imageWidth),
+          imageY: alertTemplate.imageY, //(canvas.height - alertTemplate.imageHeight),
+          imageWidth: alertTemplate.imageWidth, //img.width,
+          imageHeight: alertTemplate.imageHeight, //img.height,
+          textX: alertTemplate.textXOffset + alertTemplate.imageX + (alertTemplate.imageWidth / 2),
+          textY: alertTemplate.textYOffset + alertTemplate.imageY + (alertTemplate.imageHeight / 2),
           alertAudioId: alertTemplate.audioId
         }
         //console.log(props);
@@ -319,16 +315,17 @@ export default {
         (event) => event.id === alertTemplateName
       );
       const {
-        imgStartX,
-        imgStartY,
-        imgWidth,
-        imgHeight,
-        imgTextOffsetY,
-        imgTextOffsetX,
+        imageX,
+        imageY,
+        imageWidth,
+        imageHeight,
+        textX,
+        textY,
         alertAudioId
       } = calculateImgPlacement();
+      // log image and txt placement
+      console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, textX: ${textX}, textY: ${textY}`);
 
-      // console.log(`imgStartX: ${imgStartX}, imgStartY: ${imgStartY}, imgWidth: ${imgWidth}, imgHeight: ${imgHeight}, imgTextOffsetY: ${imgTextOffsetY}, imgTextOffsetX: ${imgTextOffsetX}, textWidth: ${textWidth}`)
       let alpha = 0;
       let fadeIn = true;
 
@@ -347,11 +344,12 @@ export default {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = alpha;
-        ctx.drawImage(document.querySelector(`#${alertTemplate.imageId}`), imgStartX, imgStartY, imgWidth, imgHeight);
+        ctx.drawImage(document.querySelector(`#${alertTemplate.imageId}`), imageX, imageY, imageWidth, imageWidth);
+        // Calculate the position to center the text
         ctx.fillText(
           username,
-          imgTextOffsetX + imgStartX + (imgWidth / 2),
-          imgTextOffsetY + imgStartY + (imgHeight / 2)
+          textX,
+          textY
         );
         if (fadeIn) {
           alpha += delta;
