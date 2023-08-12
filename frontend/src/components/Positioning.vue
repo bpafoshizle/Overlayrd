@@ -56,7 +56,7 @@
               <v-icon icon="mdi-arrow-down-bold" size="24"></v-icon>
               <v-icon icon="mdi-format-color-text" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="textOffsetVerticalPixels" outlined hide-details class="mx-1 px-1"
+            <v-text-field v-model="textYOffset" outlined hide-details class="mx-1 px-1"
               @keyup.enter="directEntryTextVertical"></v-text-field>
           </v-row>
         </v-col>
@@ -72,7 +72,7 @@
               <v-icon icon="mdi-arrow-right-bold" size="24"></v-icon>
               <v-icon icon="mdi-format-color-text" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="textOffsetHorizontalPixels" outlined hide-details class="mx-1 px-1"
+            <v-text-field v-model="textXOffset" outlined hide-details class="mx-1 px-1"
               @keyup.enter="directEntryTextHorizontal"></v-text-field>
           </v-row>
         </v-col>
@@ -139,8 +139,8 @@ export default {
       showFontColorPicker: false,
       exampleText: 'Example Text',
       fontSizes: [14, 24, 36, 56],
-      textOffsetVerticalPixels: 0,
-      textOffsetHorizontalPixels: 0,
+      textYOffset: 0,
+      textXOffset: 0,
       imageX: 50,
       imageY: 50,
       selectedFontSize: 56,
@@ -177,12 +177,12 @@ export default {
       this.workingTwitchEvent.imageX = newValue;
       this.drawAll();
     },
-    textOffsetVerticalPixels(newValue, oldValue) {
-      console.log(`textOffsetVerticalPixels: ${newValue}`);
+    textYOffset(newValue, oldValue) {
+      console.log(`textYOffset: ${newValue}`);
       this.workingTwitchEvent.textYOffset = newValue;
       this.drawAll();
     },
-    textOffsetHorizontalPixels(newValue, oldValue) {
+    textXOffset(newValue, oldValue) {
       this.workingTwitchEvent.textXOffset = newValue;
       this.drawAll();
     },
@@ -258,23 +258,23 @@ export default {
       }
     },
     directEntryTextVertical() {
-      this.textOffsetVerticalPixels = parseInt(this.textOffsetVerticalPixels);
+      this.textYOffset = parseInt(this.textYOffset);
     },
     directEntryTextHorizontal() {
-      this.textOffsetHorizontalPixels = parseInt(this.textOffsetHorizontalPixels);
+      this.textXOffset = parseInt(this.textXOffset);
     },
     adjustTextVertical(direction) {
       if (direction === 'up') {
-        this.textOffsetVerticalPixels--;
+        this.textYOffset--;
       } else if (direction === 'down') {
-        this.textOffsetVerticalPixels++;
+        this.textYOffset++;
       }
     },
     adjustTextHorizontal(direction) {
       if (direction === 'left') {
-        this.textOffsetHorizontalPixels--;
+        this.textXOffset--;
       } else if (direction === 'right') {
-        this.textOffsetHorizontalPixels++;
+        this.textXOffset++;
       }
     },
     onFontColorSelected() {
@@ -561,8 +561,8 @@ export default {
       ctx.textAlign = 'center';
 
       // Calculate the position to center the text
-      const textX = this.textOffsetHorizontalPixels + this.workingTwitchEvent.imageX + (this.workingTwitchEvent.imageWidth / 2);
-      const textY = this.textOffsetVerticalPixels + this.workingTwitchEvent.imageY + (this.workingTwitchEvent.imageHeight / 2);
+      const textX = this.textXOffset + this.workingTwitchEvent.imageX + (this.workingTwitchEvent.imageWidth / 2);
+      const textY = this.textYOffset + this.workingTwitchEvent.imageY + (this.workingTwitchEvent.imageHeight / 2);
 
       // Draw the text in the center of the image
       ctx.fillText(this.exampleText, textX, textY);
@@ -628,8 +628,8 @@ export default {
         this.imageY = this.workingTwitchEvent.imageY || 50;
         this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
         this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
-        this.textOffsetVerticalPixels = this.workingTwitchEvent.textYOffset || 0;
-        this.textOffsetHorizontalPixels = this.workingTwitchEvent.textXOffset || 0;
+        this.textYOffset = this.workingTwitchEvent.textYOffset || 0;
+        this.textXOffset = this.workingTwitchEvent.textXOffset || 0;
         this.selectedFontSize = this.workingTwitchEvent.textSize || 56;
         this.selectedFontColor = this.workingTwitchEvent.textColor || '#000000'; // Default color (black)
         this.drawAll();
@@ -649,8 +649,8 @@ export default {
       this.workingTwitchEvent.imageY = 50;
       this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
       this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
-      this.textOffsetVerticalPixels = 0;
-      this.textOffsetHorizontalPixels = 0;
+      this.textYOffset = 0;
+      this.textXOffset = 0;
       this.selectedFontSize = 56;
       this.selectedFontColor = '#000000'; // Default color (black)
       this.draggingImage = false;
