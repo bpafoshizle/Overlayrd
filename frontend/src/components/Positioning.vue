@@ -165,32 +165,32 @@ export default {
 
   watch: {
     positioningSelectedEvent(newEvent, oldEvent) {
-      console.log(`positioningSelectedEvent previous: ${oldEvent}`);
-      console.log(`positioningSelectedEvent current: ${newEvent}`);
+      //console.log(`positioningSelectedEvent previous: ${oldEvent}`);
+      //console.log(`positioningSelectedEvent current: ${newEvent}`);
       this.setupImage(newEvent);
     },
     imageY(newValue, oldValue) {
-      console.log(`imageY: ${newValue}`);
+      //console.log(`imageY: ${newValue}`);
       this.workingTwitchEvent.imageY = newValue;
       this.drawAll();
     },
     imageX(newValue, oldValue) {
-      console.log(`imageX: ${newValue}`);
+      //console.log(`imageX: ${newValue}`);
       this.workingTwitchEvent.imageX = newValue;
       this.drawAll();
     },
     imageWidth(newValue, oldValue) {
-      console.log(`imageWidth: ${newValue}`);
+      //console.log(`imageWidth: ${newValue}`);
       this.workingTwitchEvent.imageWidth = newValue;
       this.drawAll();
     },
     imageHeight(newValue, oldValue) {
-      console.log(`imageHeight: ${newValue}`);
+      //console.log(`imageHeight: ${newValue}`);
       this.workingTwitchEvent.imageHeight = newValue;
       this.drawAll();
     },
     textYOffset(newValue, oldValue) {
-      console.log(`textYOffset: ${newValue}`);
+      //console.log(`textYOffset: ${newValue}`);
       this.workingTwitchEvent.textYOffset = newValue;
       this.drawAll();
     },
@@ -292,7 +292,7 @@ export default {
     onFontColorSelected() {
       // Close the color picker dialog automatically.
       this.showFontColorPicker = false;
-      console.log(`Font color selected: ${this.selectedFontColor}`);
+      //console.log(`Font color selected: ${this.selectedFontColor}`);
       this.drawAll();
     },
     loadedImage(event) {
@@ -355,7 +355,7 @@ export default {
               await setIndexedDB({ key: twitchEvent.imageFileName, value: imageFileHandle });
               await setIndexedDB({ key: twitchEvent.audioFileName, value: audioFileHandle });
             } else {
-              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`);
+              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`); s
               allFilePermissions.push(false);
             }
           }));
@@ -425,8 +425,8 @@ export default {
       this.startX = parseInt(e.pageX - this.getCanvasOffsetX);
       this.startY = parseInt(e.pageY - this.getCanvasOffsetY);
 
-      console.log('Mouse position (pageX, pageY):', e.pageX, e.pageY);
-      console.log('Mouse position on canvas (startX, startY):', this.startX, this.startY);
+      //console.log('Mouse position (pageX, pageY):', e.pageX, e.pageY);
+      //console.log('Mouse position on canvas (startX, startY):', this.startX, this.startY);
 
       this.draggingResizer = this.anchorHitTest(this.startX, this.startY);
       this.draggingImage = this.draggingResizer < 0 && this.hitImage(this.startX, this.startY);
@@ -513,9 +513,9 @@ export default {
       const y = parseInt(e.pageY - this.getCanvasOffsetY);
 
       // Log valid click x min and max and y min and max ranges for each emoji
-      this.emojis.forEach((emojiData) => {
-        console.log(`Emoji: ${emojiData.emoji} x: ${this.iconLeft + emojiData.x} - ${this.iconLeft + emojiData.x + emojiData.width} y: ${this.iconTop + emojiData.y} - ${this.iconTop + emojiData.y + emojiData.height}`);
-      });
+      // this.emojis.forEach((emojiData) => {
+      //   console.log(`Emoji: ${emojiData.emoji} x: ${this.iconLeft + emojiData.x} - ${this.iconLeft + emojiData.x + emojiData.width} y: ${this.iconTop + emojiData.y} - ${this.iconTop + emojiData.y + emojiData.height}`);
+      // });
 
       // Check if the click is inside the bounding box of each emoji
       this.emojis.forEach((emojiData) => {
@@ -536,11 +536,11 @@ export default {
       if (emoji === '▶️') {
         // play audio
         this.workingAudio.play();
-        console.log('▶️ emoji clicked!');
+        //console.log('▶️ emoji clicked!');
       } else if (emoji === '♻') {
         // Reset image to original position
         this.resetImage();
-        console.log('♻ emoji clicked!');
+        //console.log('♻ emoji clicked!');
       }
       // Add more cases for other emojis as needed
     },
