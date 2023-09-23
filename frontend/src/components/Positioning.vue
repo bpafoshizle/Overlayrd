@@ -141,6 +141,8 @@ export default {
       fontSizes: [14, 24, 36, 56],
       textYOffset: 0,
       textXOffset: 0,
+      imageWidth: 700,
+      imageHeight: 700,
       imageX: 50,
       imageY: 50,
       selectedFontSize: 56,
@@ -150,8 +152,8 @@ export default {
       pi2: Math.PI * 2,
       resizerRadius: 8,
       draggingResizer: { x: 0, y: 0 },
-      imageRight: 750,
-      imageBottom: 750,
+      imageRight: this.imageX + this.imageWidth,
+      imageBottom: this.imageY + this.imageHeight,
       draggingImage: false,
       emojis: [
         { emoji: '▶️', x: 0, y: 0, width: 24, height: 24 },
@@ -175,6 +177,16 @@ export default {
     imageX(newValue, oldValue) {
       console.log(`imageX: ${newValue}`);
       this.workingTwitchEvent.imageX = newValue;
+      this.drawAll();
+    },
+    imageWidth(newValue, oldValue) {
+      console.log(`imageWidth: ${newValue}`);
+      this.workingTwitchEvent.imageWidth = newValue;
+      this.drawAll();
+    },
+    imageHeight(newValue, oldValue) {
+      console.log(`imageHeight: ${newValue}`);
+      this.workingTwitchEvent.imageHeight = newValue;
       this.drawAll();
     },
     textYOffset(newValue, oldValue) {
@@ -385,26 +397,26 @@ export default {
       const rr = this.resizerRadius * this.resizerRadius;
       let dx, dy;
       // top-left
-      dx = x - this.workingTwitchEvent.imageX;
-      dy = y - this.workingTwitchEvent.imageY;
+      dx = x - this.imageX;
+      dy = y - this.imageY;
       if (dx * dx + dy * dy <= rr) { return (0); }
       // top-right
       dx = x - this.imageRight;
-      dy = y - this.workingTwitchEvent.imageY;
+      dy = y - this.imageY;
       if (dx * dx + dy * dy <= rr) { return (1); }
       // bottom-right
       dx = x - this.imageRight;
       dy = y - this.imageBottom;
       if (dx * dx + dy * dy <= rr) { return (2); }
       // bottom-left
-      dx = x - this.workingTwitchEvent.imageX;
+      dx = x - this.imageX;
       dy = y - this.imageBottom;
       if (dx * dx + dy * dy <= rr) { return (3); }
       return (-1);
     },
 
     hitImage(x, y) {
-      return (x > this.workingTwitchEvent.imageX && x < this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth && y > this.workingTwitchEvent.imageY && y < this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight);
+      return (x > this.imageX && x < this.imageX + this.imageWidth && y > this.imageY && y < this.imageY + this.imageHeight);
     },
 
     handleMouseDown(e) {
@@ -440,36 +452,38 @@ export default {
         switch (this.draggingResizer) {
           case 0: //top-left
             this.imageX = mouseX;
-            this.workingTwitchEvent.imageWidth = this.imageRight - mouseX;
-            this.workingTwitchEvent.imageY = mouseY;
-            this.workingTwitchEvent.imageHeight = this.imageBottom - mouseY;
+            this.imageWidth = this.imageRight - mouseX;
+            this.imageY = mouseY;
+            this.imageHeight = this.imageBottom - mouseY;
             break;
           case 1: //top-right
             this.imageY = mouseY;
-            this.workingTwitchEvent.imageWidth = mouseX - this.workingTwitchEvent.imageX;
-            this.workingTwitchEvent.imageHeight = this.imageBottom - mouseY;
+            this.imageWidth = mouseX - this.imageX;
+            this.imageHeight = this.imageBottom - mouseY;
             break;
           case 2: //bottom-right
-            this.imageWidth = mouseX - this.workingTwitchEvent.imageX;
-            this.workingTwitchEvent.imageHeight = mouseY - this.workingTwitchEvent.imageY;
+            this.imageWidth = mouseX - this.imageX;
+            this.imageHeight = mouseY - this.imageY;
             break;
           case 3: //bottom-left
             this.imageX = mouseX;
-            this.workingTwitchEvent.imageWidth = this.imageRight - mouseX;
-            this.workingTwitchEvent.imageHeight = mouseY - this.workingTwitchEvent.imageY;
+            this.imageWidth = this.imageRight - mouseX;
+            this.imageHeight = mouseY - this.imageY;
             break;
         }
 
         // enforce minimum dimensions of 25x25
-        if (this.workingTwitchEvent.imageWidth < 25) { this.workingTwitchEvent.imageWidth = 25; }
-        if (this.workingTwitchEvent.imageHeight < 25) { this.workingTwitchEvent.imageHeight = 25; }
+        if (this.imageWidth < 25) { this.imageWidth = 25; }
+        if (this.imageHeight < 25) { this.imageHeight = 25; }
 
         // set the image right and bottom
-        // this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
-        // this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
+        this.imageRight = this.imageX + this.imageWidth;
+        this.imageBottom = this.imageY + this.imageHeight;
 
         // redraw the image with resizing anchors
         this.draw(true, true);
+        this.drawIcons();
+        this.drawText();
 
       } else if (this.draggingImage) {
 
@@ -561,8 +575,8 @@ export default {
       ctx.textAlign = 'center';
 
       // Calculate the position to center the text
-      const textX = this.textXOffset + this.workingTwitchEvent.imageX + (this.workingTwitchEvent.imageWidth / 2);
-      const textY = this.textYOffset + this.workingTwitchEvent.imageY + (this.workingTwitchEvent.imageHeight / 2);
+      const textX = this.textXOffset + this.imageX + (this.imageWidth / 2);
+      const textY = this.textYOffset + this.imageY + (this.imageHeight / 2);
 
       // Draw the text in the center of the image
       ctx.fillText(this.exampleText, textX, textY);
@@ -592,23 +606,23 @@ export default {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // draw the image
-      ctx.drawImage(this.workingImg, this.workingTwitchEvent.imageX, this.workingTwitchEvent.imageY, this.workingTwitchEvent.imageWidth, this.workingTwitchEvent.imageHeight);
+      ctx.drawImage(this.workingImg, this.imageX, this.imageY, this.imageWidth, this.imageHeight);
 
       // optionally draw the draggable anchors
       if (withAnchors) {
-        this.drawDragAnchor(this.workingTwitchEvent.imageX, this.workingTwitchEvent.imageY);
-        this.drawDragAnchor(this.imageRight, this.workingTwitchEvent.imageY);
+        this.drawDragAnchor(this.imageX, this.imageY);
+        this.drawDragAnchor(this.imageRight, this.imageY);
         this.drawDragAnchor(this.imageRight, this.imageBottom);
-        this.drawDragAnchor(this.workingTwitchEvent.imageX, this.imageBottom);
+        this.drawDragAnchor(this.imageX, this.imageBottom);
       }
 
       // optionally draw the connecting anchor lines
       if (withBorders) {
         ctx.beginPath();
-        ctx.moveTo(this.workingTwitchEvent.imageX, this.workingTwitchEvent.imageY);
-        ctx.lineTo(this.imageRight, this.workingTwitchEvent.imageY);
+        ctx.moveTo(this.imageX, this.imageY);
+        ctx.lineTo(this.imageRight, this.imageY);
         ctx.lineTo(this.imageRight, this.imageBottom);
-        ctx.lineTo(this.workingTwitchEvent.imageX, this.imageBottom);
+        ctx.lineTo(this.imageX, this.imageBottom);
         ctx.closePath();
         ctx.stroke();
       }
@@ -622,12 +636,12 @@ export default {
 
       this.workingImg.onload = () => {
         console.log("image loaded");
-        this.workingTwitchEvent.imageWidth = this.workingTwitchEvent.imageWidth || this.origImage.width;
-        this.workingTwitchEvent.imageHeight = this.workingTwitchEvent.imageHeight || this.origImage.height;
+        this.imageWidth = this.workingTwitchEvent.imageWidth || this.origImage.width;
+        this.imageHeight = this.workingTwitchEvent.imageHeight || this.origImage.height;
         this.imageX = this.workingTwitchEvent.imageX || 50;
         this.imageY = this.workingTwitchEvent.imageY || 50;
-        this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
-        this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
+        this.imageRight = this.imageX + this.imageWidth;
+        this.imageBottom = this.imageY + this.imageHeight;
         this.textYOffset = this.workingTwitchEvent.textYOffset || 0;
         this.textXOffset = this.workingTwitchEvent.textXOffset || 0;
         this.selectedFontSize = this.workingTwitchEvent.textSize || 56;
@@ -643,12 +657,12 @@ export default {
 
     resetImage() {
       console.log('resetImage');
-      this.workingTwitchEvent.imageWidth = 700;
-      this.workingTwitchEvent.imageHeight = 700;
-      this.workingTwitchEvent.imageX = 50;
-      this.workingTwitchEvent.imageY = 50;
-      this.imageRight = this.workingTwitchEvent.imageX + this.workingTwitchEvent.imageWidth;
-      this.imageBottom = this.workingTwitchEvent.imageY + this.workingTwitchEvent.imageHeight;
+      this.imageWidth = 700;
+      this.imageHeight = 700;
+      this.imageX = 50;
+      this.imageY = 50;
+      this.imageRight = this.imageX + this.imageWidth;
+      this.imageBottom = this.imageY + this.imageHeight;
       this.textYOffset = 0;
       this.textXOffset = 0;
       this.selectedFontSize = 56;
