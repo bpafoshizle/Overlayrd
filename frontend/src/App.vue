@@ -34,9 +34,9 @@
               </v-btn>
             </template>
             <v-list>
-              <v-list-item v-for="(event) in getCheckedTwitchEvents" :key="event.imageId" :value="event.imageId"
-                @click="positionEventSelected(event.id, $event)">
-                <v-list-item-title>{{ event.text }}</v-list-item-title>
+              <v-list-item v-for="(checked) in getAllCheckedEventsAndWidgets" :key="checked.mediaId"
+                :value="checked.mediaId" @click="positionEventSelected(checked.id, $event)">
+                <v-list-item-title>{{ checked.text }}</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -83,8 +83,8 @@ export default {
   computed: {
     ...mapWritableState(useSettingsStore, ['userEnteredSettings']),
     ...mapState(useSettingsStore, {
-      getCheckedTwitchEvents(store) {
-        return store.getCheckedTwitchEvents;
+      getAllCheckedEventsAndWidgets(store) {
+        return store.getAllCheckedEventsAndWidgets;
       }
     }),
     ...mapWritableState(useDatabus, ['positioningSelectedEvent']),

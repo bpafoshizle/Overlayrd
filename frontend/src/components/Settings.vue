@@ -5,7 +5,7 @@
         <v-expansion-panels>
           <v-expansion-panel v-on:click="loadFileHandles()">
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
-              Alert Media Directory
+              Media Directory
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <directory-location-input v-model="directoryHandle" button-text="Choose Directory"
@@ -17,14 +17,14 @@
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
-              Twitch Application Credentials
+              Twitch Credentials
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <v-container>
                 <v-row>
                   <v-col cols="12" md="6">
-                    <v-text-field v-model="userEnteredSettings.twitchClientId" :rules="twitchClientIdRules" :counter="30"
-                      :type="'password'" label="Twitch Client ID" required></v-text-field>
+                    <v-text-field v-model="userEnteredSettings.twitchClientId" :rules="twitchClientIdRules"
+                      :counter="30" :type="'password'" label="Twitch Client ID" required></v-text-field>
                   </v-col>
                   <v-col cols="12" md="6">
                     <v-text-field v-model="userEnteredSettings.twitchClientSecret" :rules="twitchClientSecretRules"
@@ -36,7 +36,7 @@
           </v-expansion-panel>
           <v-expansion-panel v-on:click="loadFileHandles()">
             <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
-              Twitch Subscripton Details
+              Twitch Events
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <v-container>
@@ -46,15 +46,37 @@
                 </v-row>
                 <v-row v-for="(twitchEvent, i) in userEnteredSettings.twitchEvents" :key="twitchEvent.value">
                   <v-col cols="12" md="6">
-                    <v-switch v-model="userEnteredSettings.selectedTwitchEvents" :label="twitchEvent.text" color="primary"
-                      :value="twitchEvent.value" :rules="twitchEventsRules" />
+                    <v-switch v-model="userEnteredSettings.selectedTwitchEvents" :label="twitchEvent.text"
+                      color="primary" :value="twitchEvent.value" :rules="twitchEventsRules" />
                   </v-col>
                   <v-divider inset vertical></v-divider>
                   <v-col cols="12" md="6" v-if="twitchEvent.checked">
-                    <v-select variant="underlined" label="Image" :items="userEnteredSettings.imageFileNames"
-                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].imageFileName" color="primary" />
+                    <v-select variant="underlined" label="Media" :items="userEnteredSettings.mediaFileNames"
+                      item-title="name" v-model="userEnteredSettings.twitchEvents[i].mediaFileName" color="primary" />
                     <v-select variant="underlined" label="Audio" :items="userEnteredSettings.audioFileNames"
                       item-title="name" v-model="userEnteredSettings.twitchEvents[i].audioFileName" color="primary" />
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+          <v-expansion-panel>
+            <v-expansion-panel-title color="primary" class="display-1 text-uppercase font-weight-medium">
+              Widgets
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-container>
+                <v-row v-for="(widget, i) in userEnteredSettings.widgets" :key="widget.id">
+                  <v-col cols="12" md="6">
+                    <v-switch v-model="userEnteredSettings.selectedWidgets" :label="widget.text" color="primary"
+                      :value="widget.id" />
+                  </v-col>
+                  <v-divider inset vertical></v-divider>
+                  <v-col cols="12" md="6" v-if="widget.checked">
+                    <v-select variant="underlined" label="Media" :items="userEnteredSettings.mediaFileNames"
+                      item-title="name" v-model="userEnteredSettings.widgets[i].mediaFileName" color="primary" />
+                    <v-select variant="underlined" label="Audio" :items="userEnteredSettings.audioFileNames"
+                      item-title="name" v-model="userEnteredSettings.widgets[i].audioFileName" color="primary" />
                   </v-col>
                 </v-row>
               </v-container>
@@ -136,6 +158,15 @@ export default {
         }
       })
     },
+    'userEnteredSettings.selectedWidgets': function (val, oldValue) {
+      this.userEnteredSettings.widgets.forEach((widget) => {
+        if (val.includes(widget.id)) {
+          widget.checked = true
+        } else {
+          widget.checked = false
+        }
+      })
+    }
   },
 
   computed: {
@@ -173,7 +204,7 @@ export default {
       this.directoryHandle = handle;
       this.userEnteredSettings.directoryName = handle.name;
 
-      // Set up the audio and image file lists
+      // Set up the audio and media file lists
       for await (const entry of this.directoryHandle.values()) {
         if (entry.kind === 'file') {
           if (entry.name === 'settings.json') {
@@ -192,9 +223,9 @@ export default {
           }
           else {
             const extension = entry.name.slice(-4); // get last 4 characters of the filename
-            if (extension === ".png" || extension === ".jpg" || extension === ".gif") {
-              if (!this.userEnteredSettings.imageFileNames.includes(entry.name)) {
-                this.userEnteredSettings.imageFileNames.push(entry.name)
+            if (extension === ".png" || extension === ".jpg" || extension === ".gif" || extension === "webm") {
+              if (!this.userEnteredSettings.mediaFileNames.includes(entry.name)) {
+                this.userEnteredSettings.mediaFileNames.push(entry.name)
               }
               setIndexedDB(
                 { key: entry.name, value: entry }

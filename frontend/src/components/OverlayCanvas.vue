@@ -17,15 +17,16 @@
     <!-- <canvas id="bgcanvasid" :width="overlayProps.canvasWidth" :height="overlayProps.canvasHeight" background="none"
       v-if="!showFilesNotLoaded"></canvas> -->
     <div style="display:none;">
-      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :ref="twitchEvent.imageId"
-        :src="twitchEvent.imageFile || false" :width="twitchEvent.imageWidth" :height="twitchEvent.imageHeight"
-        @load="loadedImage" @error="errorImage" />
+      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.mediaId" :ref="twitchEvent.mediaId"
+        :src="twitchEvent.mediaFile || false" :width="twitchEvent.mediaWidth" :height="twitchEvent.mediaHeight"
+        @load="loadedMedia" @error="errorMedia" />
       <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :ref="twitchEvent.audioId"
-        :src="twitchEvent.audioFile || false" :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
+        :src="twitchEvent.audioFile || false" :volume="twitchEvent.audioVolume" @load="loadedAudio"
+        @error="errorAudio" />
     </div>
   </div>
 </template>
-  
+
 <script>
 import { useTheme } from 'vuetify'
 import { mapWritableState, mapState } from 'pinia'
@@ -74,12 +75,12 @@ export default {
 
   methods: {
 
-    async loadedImage(event) {
-      console.log(`loaded image: ${event.target.id}`);
+    async loadedMedia(event) {
+      console.log(`loaded media: ${event.target.id}`);
     },
 
-    async errorImage(event) {
-      console.log(`error loading image: ${event.target.id}`);
+    async errorMedia(event) {
+      console.log(`error loading media: ${event.target.id}`);
       this.filesAccessible = false;
     },
 
@@ -123,21 +124,21 @@ export default {
           console.log('Got permission to access the directory');
           let allFilePermissions = [];
           await Promise.all(this.getCheckedTwitchEvents.map(async (twitchEvent) => {
-            let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
+            let mediaFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.mediaFileName);
             let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
-            let imagePermitted = await this.verifyPermission(imageFileHandle);
+            let mediaPermitted = await this.verifyPermission(mediaFileHandle);
             let audioPermitted = await this.verifyPermission(audioFileHandle);
-            if (imagePermitted && audioPermitted) {
-              console.log(`Got permission to access ${twitchEvent.imageFileName} and ${twitchEvent.audioFileName}`);
+            if (mediaPermitted && audioPermitted) {
+              console.log(`Got permission to access ${twitchEvent.mediaFileName} and ${twitchEvent.audioFileName}`);
               allFilePermissions.push(true);
-              let imageFile = await imageFileHandle.getFile();
-              twitchEvent.imageFile = URL.createObjectURL(imageFile);
+              let mediaFile = await mediaFileHandle.getFile();
+              twitchEvent.mediaFile = URL.createObjectURL(mediaFile);
               let audioFile = await audioFileHandle.getFile();
               twitchEvent.audioFile = URL.createObjectURL(audioFile);
-              await setIndexedDB({ key: twitchEvent.imageFileName, value: imageFileHandle });
+              await setIndexedDB({ key: twitchEvent.mediaFileName, value: mediaFileHandle });
               await setIndexedDB({ key: twitchEvent.audioFileName, value: audioFileHandle });
             } else {
-              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`);
+              console.log(`No permission to access ${twitchEvent.mediaFileName} or ${twitchEvent.audioFileName}`);
               allFilePermissions.push(false);
             }
           }));
@@ -300,12 +301,12 @@ export default {
         ctx.font = `${alertTemplate.textSize}px Monaco`;
         ctx.textAlign = 'center';
         const props = {
-          imageX: alertTemplate.imageX, //(canvas.width - alertTemplate.imageWidth),
-          imageY: alertTemplate.imageY, //(canvas.height - alertTemplate.imageHeight),
-          imageWidth: alertTemplate.imageWidth, //img.width,
-          imageHeight: alertTemplate.imageHeight, //img.height,
-          textX: alertTemplate.textXOffset + alertTemplate.imageX + (alertTemplate.imageWidth / 2),
-          textY: alertTemplate.textYOffset + alertTemplate.imageY + (alertTemplate.imageHeight / 2),
+          mediaX: alertTemplate.mediaX, //(canvas.width - alertTemplate.mediaWidth),
+          mediaY: alertTemplate.mediaY, //(canvas.height - alertTemplate.mediaHeight),
+          mediaWidth: alertTemplate.mediaWidth, //img.width,
+          mediaHeight: alertTemplate.mediaHeight, //img.height,
+          textX: alertTemplate.textXOffset + alertTemplate.mediaX + (alertTemplate.mediaWidth / 2),
+          textY: alertTemplate.textYOffset + alertTemplate.mediaY + (alertTemplate.mediaHeight / 2),
           alertAudioId: alertTemplate.audioId
         }
         //console.log(props);
@@ -315,16 +316,16 @@ export default {
         (event) => event.id === alertTemplateName
       );
       const {
-        imageX,
-        imageY,
-        imageWidth,
-        imageHeight,
+        mediaX,
+        mediaY,
+        mediaWidth,
+        mediaHeight,
         textX,
         textY,
         alertAudioId
       } = calculateImgPlacement();
-      // log image and txt placement
-      console.log(`imageX: ${imageX}, imageY: ${imageY}, imageWidth: ${imageWidth}, imageHeight: ${imageHeight}, textX: ${textX}, textY: ${textY}`);
+      // log media and txt placement
+      console.log(`mediaX: ${mediaX}, mediaY: ${mediaY}, mediaWidth: ${mediaWidth}, mediaHeight: ${mediaHeight}, textX: ${textX}, textY: ${textY}`);
 
       let alpha = 0;
       let fadeIn = true;
@@ -344,7 +345,7 @@ export default {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = alpha;
-        ctx.drawImage(document.querySelector(`#${alertTemplate.imageId}`), imageX, imageY, imageWidth, imageWidth);
+        ctx.drawImage(document.querySelector(`#${alertTemplate.mediaId}`), mediaX, mediaY, mediaWidth, mediaWidth);
         // Calculate the position to center the text
         ctx.fillText(
           username,

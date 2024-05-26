@@ -10,38 +10,38 @@
         </v-col>
       </v-row>
     </v-container>
-    <v-container v-if="imageSetup" fill-height>
+    <v-container v-if="mediaSetup" fill-height>
       <v-row align="start" style="height: 50px;">
 
-        <!-- Vertical Image Pixel Adjuster -->
+        <!-- Vertical Media Pixel Adjuster -->
         <v-col>
           <v-row align="start" style="height: 50px;">
-            <v-btn @click="adjustImageVertical('up')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustMediaVertical('up')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-up-bold" size="24"></v-icon>
               <v-icon icon="mdi-image" size="24"></v-icon>
             </v-btn>
-            <v-btn @click="adjustImageVertical('down')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustMediaVertical('down')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-down-bold" size="24"></v-icon>
               <v-icon icon="mdi-image" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="imageY" outlined hide-details class="mx-1 px-1"
-              @keyup.enter="directEntryImageVertical"></v-text-field>
+            <v-text-field v-model="mediaY" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryMediaVertical"></v-text-field>
           </v-row>
         </v-col>
 
-        <!-- Horizontal Image Pixel Adjuster -->
+        <!-- Horizontal Media Pixel Adjuster -->
         <v-col>
           <v-row>
-            <v-btn @click="adjustImageHorizontal('left')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustMediaHorizontal('left')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-left-bold" size="24"></v-icon>
               <v-icon icon="mdi-image" size="24"></v-icon>
             </v-btn>
-            <v-btn @click="adjustImageHorizontal('right')" color="primary" height="50" class="mx-1 px-1">
+            <v-btn @click="adjustMediaHorizontal('right')" color="primary" height="50" class="mx-1 px-1">
               <v-icon icon="mdi-arrow-right-bold" size="24"></v-icon>
               <v-icon icon="mdi-image" size="24"></v-icon>
             </v-btn>
-            <v-text-field v-model="imageX" outlined hide-details class="mx-1 px-1"
-              @keyup.enter="directEntryImageHorizontal"></v-text-field>
+            <v-text-field v-model="mediaX" outlined hide-details class="mx-1 px-1"
+              @keyup.enter="directEntryMediaHorizontal"></v-text-field>
           </v-row>
         </v-col>
 
@@ -112,10 +112,12 @@
     <canvas id="bgcanvasid" ref="bgcanvasref" :width="getCanvasWidth" :height="getCanvasHeight"
       :style="{ width: getCanvasWidth + 'px', height: getCanvasHeight + 'px' }" background="none"></canvas>
     <div style="display:none;">
-      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.imageId" :src="twitchEvent.imageFile || false"
-        :width="700" :height="700" @load="loadedImage" @error="errorImage" />
-      <audio v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.audioId" :src="twitchEvent.audioFile || false"
-        :volume="twitchEvent.audioVolume" @load="loadedAudio" @error="errorAudio" />
+      <video v-for="widget in getCheckedWidgets" :id="widget.mediaId" :src="widget.mediaFile || false" :width="700"
+        :height="700" @load="loadedMedia" @error="errorMedia" controls loop autoplay />
+      <img v-for="twitchEvent in getCheckedTwitchEvents" :id="twitchEvent.mediaId" :src="twitchEvent.mediaFile || false"
+        :width="700" :height="700" @load="loadedMedia" @error="errorMedia" />
+      <audio v-for="checked in getAllCheckedEventsAndWidgets" :id="checked.audioId" :src="checked.audioFile || false"
+        :volume="checked.audioVolume" @load="loadedAudio" @error="errorAudio" />
     </div>
   </div>
 </template>
@@ -130,21 +132,21 @@ export default {
 
   data() {
     return {
-      imageSetup: false,
+      mediaSetup: false,
       filesAccessible: true,
-      origImage: undefined,
-      workingTwitchEvent: undefined,
-      workingImg: undefined,
+      origMedia: undefined,
+      workingMediaObject: undefined,
+      workingMediaElement: undefined,
       workingAudio: undefined,
       showFontColorPicker: false,
       exampleText: 'Example Text',
       fontSizes: [14, 24, 36, 56],
       textYOffset: 0,
       textXOffset: 0,
-      imageWidth: 700,
-      imageHeight: 700,
-      imageX: 50,
-      imageY: 50,
+      mediaWidth: 700,
+      mediaHeight: 700,
+      mediaX: 50,
+      mediaY: 50,
       selectedFontSize: 56,
       selectedFontColor: '#000000', // Default color (black)
       iconTop: 200, // Initial icon position (adjust as needed)
@@ -152,9 +154,9 @@ export default {
       pi2: Math.PI * 2,
       resizerRadius: 8,
       draggingResizer: { x: 0, y: 0 },
-      imageRight: this.imageX + this.imageWidth,
-      imageBottom: this.imageY + this.imageHeight,
-      draggingImage: false,
+      mediaRight: this.mediaX + this.mediaWidth,
+      mediaBottom: this.mediaY + this.mediaHeight,
+      draggingMedia: false,
       emojis: [
         { emoji: '▶️', x: 0, y: 0, width: 24, height: 24 },
         { emoji: '♻', x: 30, y: 0, width: 24, height: 24 },
@@ -167,43 +169,43 @@ export default {
     positioningSelectedEvent(newEvent, oldEvent) {
       //console.log(`positioningSelectedEvent previous: ${oldEvent}`);
       //console.log(`positioningSelectedEvent current: ${newEvent}`);
-      this.setupImage(newEvent);
+      this.setupMedia(newEvent);
     },
-    imageY(newValue, oldValue) {
-      //console.log(`imageY: ${newValue}`);
-      this.workingTwitchEvent.imageY = newValue;
+    mediaY(newValue, oldValue) {
+      //console.log(`mediaY: ${newValue}`);
+      this.workingMediaObject.mediaY = newValue;
       this.drawAll();
     },
-    imageX(newValue, oldValue) {
-      //console.log(`imageX: ${newValue}`);
-      this.workingTwitchEvent.imageX = newValue;
+    mediaX(newValue, oldValue) {
+      //console.log(`mediaX: ${newValue}`);
+      this.workingMediaObject.mediaX = newValue;
       this.drawAll();
     },
-    imageWidth(newValue, oldValue) {
-      //console.log(`imageWidth: ${newValue}`);
-      this.workingTwitchEvent.imageWidth = newValue;
+    mediaWidth(newValue, oldValue) {
+      //console.log(`mediaWidth: ${newValue}`);
+      this.workingMediaObject.mediaWidth = newValue;
       this.drawAll();
     },
-    imageHeight(newValue, oldValue) {
-      //console.log(`imageHeight: ${newValue}`);
-      this.workingTwitchEvent.imageHeight = newValue;
+    mediaHeight(newValue, oldValue) {
+      //console.log(`mediaHeight: ${newValue}`);
+      this.workingMediaObject.mediaHeight = newValue;
       this.drawAll();
     },
     textYOffset(newValue, oldValue) {
       //console.log(`textYOffset: ${newValue}`);
-      this.workingTwitchEvent.textYOffset = newValue;
+      this.workingMediaObject.textYOffset = newValue;
       this.drawAll();
     },
     textXOffset(newValue, oldValue) {
-      this.workingTwitchEvent.textXOffset = newValue;
+      this.workingMediaObject.textXOffset = newValue;
       this.drawAll();
     },
     selectedFontSize(newValue, oldValue) {
-      this.workingTwitchEvent.textSize = newValue;
+      this.workingMediaObject.textSize = newValue;
       this.drawAll();
     },
     selectedFontColor(newValue, oldValue) {
-      this.workingTwitchEvent.textColor = newValue;
+      this.workingMediaObject.textColor = newValue;
     },
 
   },
@@ -214,8 +216,14 @@ export default {
     ...mapState(useSettingsStore, ['overlayProps']),
     ...mapWritableState(useSettingsStore, ['directoryHandle']),
     ...mapState(useSettingsStore, {
+      getAllCheckedEventsAndWidgets(store) {
+        return store.getAllCheckedEventsAndWidgets;
+      },
       getCheckedTwitchEvents(store) {
         return store.getCheckedTwitchEvents;
+      },
+      getCheckedWidgets(store) {
+        return store.getCheckedWidgets;
       },
       getCanvasWidth(store) {
         return store.getCanvasWidth;
@@ -249,24 +257,24 @@ export default {
   },
 
   methods: {
-    directEntryImageVertical() {
-      this.imageY = parseInt(this.imageY);
+    directEntryMediaVertical() {
+      this.mediaY = parseInt(this.mediaY);
     },
-    directEntryImageHorizontal() {
-      this.imageX = parseInt(this.imageX);
+    directEntryMediaHorizontal() {
+      this.mediaX = parseInt(this.mediaX);
     },
-    adjustImageVertical(direction) {
+    adjustMediaVertical(direction) {
       if (direction === 'up') {
-        this.imageY--;
+        this.mediaY--;
       } else if (direction === 'down') {
-        this.imageY++;
+        this.mediaY++;
       }
     },
-    adjustImageHorizontal(direction) {
+    adjustMediaHorizontal(direction) {
       if (direction === 'left') {
-        this.imageX--;
+        this.mediaX--;
       } else if (direction === 'right') {
-        this.imageX++;
+        this.mediaX++;
       }
     },
     directEntryTextVertical() {
@@ -295,11 +303,11 @@ export default {
       //console.log(`Font color selected: ${this.selectedFontColor}`);
       this.drawAll();
     },
-    loadedImage(event) {
-      console.log(`loaded image: ${event.target.id}`);
+    loadedMedia(event) {
+      console.log(`loaded media: ${event.target.id}`);
     },
-    errorImage(event) {
-      console.log(`error loading image: ${event.target.id}`);
+    errorMedia(event) {
+      console.log(`error loading media: ${event.target.id}`);
       this.filesAccessible = false;
     },
     loadedAudio(event) {
@@ -340,22 +348,22 @@ export default {
         if (directoryPermitted) {
           console.log('Got permission to access the directory');
           let allFilePermissions = [];
-          await Promise.all(this.getCheckedTwitchEvents.map(async (twitchEvent) => {
-            let imageFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.imageFileName);
-            let audioFileHandle = await this.directoryHandle.getFileHandle(twitchEvent.audioFileName);
-            let imagePermitted = await this.verifyPermission(imageFileHandle);
+          await Promise.all(this.getAllCheckedEventsAndWidgets.map(async (checked) => {
+            let mediaFileHandle = await this.directoryHandle.getFileHandle(checked.mediaFileName);
+            let audioFileHandle = await this.directoryHandle.getFileHandle(checked.audioFileName);
+            let mediaPermitted = await this.verifyPermission(mediaFileHandle);
             let audioPermitted = await this.verifyPermission(audioFileHandle);
-            if (imagePermitted && audioPermitted) {
-              console.log(`Got permission to access ${twitchEvent.imageFileName} and ${twitchEvent.audioFileName}`);
+            if (mediaPermitted && audioPermitted) {
+              console.log(`Got permission to access ${checked.mediaFileName} and ${checked.audioFileName}`);
               allFilePermissions.push(true);
-              let imageFile = await imageFileHandle.getFile();
-              twitchEvent.imageFile = URL.createObjectURL(imageFile);
+              let mediaFile = await mediaFileHandle.getFile();
+              checked.mediaFile = URL.createObjectURL(mediaFile);
               let audioFile = await audioFileHandle.getFile();
-              twitchEvent.audioFile = URL.createObjectURL(audioFile);
-              await setIndexedDB({ key: twitchEvent.imageFileName, value: imageFileHandle });
-              await setIndexedDB({ key: twitchEvent.audioFileName, value: audioFileHandle });
+              checked.audioFile = URL.createObjectURL(audioFile);
+              await setIndexedDB({ key: checked.mediaFileName, value: mediaFileHandle });
+              await setIndexedDB({ key: checked.audioFileName, value: audioFileHandle });
             } else {
-              console.log(`No permission to access ${twitchEvent.imageFileName} or ${twitchEvent.audioFileName}`); s
+              console.log(`No permission to access ${checked.mediaFileName} or ${checked.audioFileName}`); s
               allFilePermissions.push(false);
             }
           }));
@@ -397,26 +405,26 @@ export default {
       const rr = this.resizerRadius * this.resizerRadius;
       let dx, dy;
       // top-left
-      dx = x - this.imageX;
-      dy = y - this.imageY;
+      dx = x - this.mediaX;
+      dy = y - this.mediaY;
       if (dx * dx + dy * dy <= rr) { return (0); }
       // top-right
-      dx = x - this.imageRight;
-      dy = y - this.imageY;
+      dx = x - this.mediaRight;
+      dy = y - this.mediaY;
       if (dx * dx + dy * dy <= rr) { return (1); }
       // bottom-right
-      dx = x - this.imageRight;
-      dy = y - this.imageBottom;
+      dx = x - this.mediaRight;
+      dy = y - this.mediaBottom;
       if (dx * dx + dy * dy <= rr) { return (2); }
       // bottom-left
-      dx = x - this.imageX;
-      dy = y - this.imageBottom;
+      dx = x - this.mediaX;
+      dy = y - this.mediaBottom;
       if (dx * dx + dy * dy <= rr) { return (3); }
       return (-1);
     },
 
-    hitImage(x, y) {
-      return (x > this.imageX && x < this.imageX + this.imageWidth && y > this.imageY && y < this.imageY + this.imageHeight);
+    hitMedia(x, y) {
+      return (x > this.mediaX && x < this.mediaX + this.mediaWidth && y > this.mediaY && y < this.mediaY + this.mediaHeight);
     },
 
     handleMouseDown(e) {
@@ -429,12 +437,12 @@ export default {
       //console.log('Mouse position on canvas (startX, startY):', this.startX, this.startY);
 
       this.draggingResizer = this.anchorHitTest(this.startX, this.startY);
-      this.draggingImage = this.draggingResizer < 0 && this.hitImage(this.startX, this.startY);
+      this.draggingMedia = this.draggingResizer < 0 && this.hitMedia(this.startX, this.startY);
     },
 
     handleMouseUp(e) {
       this.draggingResizer = -1;
-      this.draggingImage = false;
+      this.draggingMedia = false;
       this.drawAll();
     },
 
@@ -448,60 +456,60 @@ export default {
         const mouseX = parseInt(e.pageX - this.getCanvasOffsetX);
         const mouseY = parseInt(e.pageY - this.getCanvasOffsetY);
 
-        // resize the image
+        // resize the media
         switch (this.draggingResizer) {
           case 0: //top-left
-            this.imageX = mouseX;
-            this.imageWidth = this.imageRight - mouseX;
-            this.imageY = mouseY;
-            this.imageHeight = this.imageBottom - mouseY;
+            this.mediaX = mouseX;
+            this.mediaWidth = this.mediaRight - mouseX;
+            this.mediaY = mouseY;
+            this.mediaHeight = this.mediaBottom - mouseY;
             break;
           case 1: //top-right
-            this.imageY = mouseY;
-            this.imageWidth = mouseX - this.imageX;
-            this.imageHeight = this.imageBottom - mouseY;
+            this.mediaY = mouseY;
+            this.mediaWidth = mouseX - this.mediaX;
+            this.mediaHeight = this.mediaBottom - mouseY;
             break;
           case 2: //bottom-right
-            this.imageWidth = mouseX - this.imageX;
-            this.imageHeight = mouseY - this.imageY;
+            this.mediaWidth = mouseX - this.mediaX;
+            this.mediaHeight = mouseY - this.mediaY;
             break;
           case 3: //bottom-left
-            this.imageX = mouseX;
-            this.imageWidth = this.imageRight - mouseX;
-            this.imageHeight = mouseY - this.imageY;
+            this.mediaX = mouseX;
+            this.mediaWidth = this.mediaRight - mouseX;
+            this.mediaHeight = mouseY - this.mediaY;
             break;
         }
 
         // enforce minimum dimensions of 25x25
-        if (this.imageWidth < 25) { this.imageWidth = 25; }
-        if (this.imageHeight < 25) { this.imageHeight = 25; }
+        if (this.mediaWidth < 25) { this.mediaWidth = 25; }
+        if (this.mediaHeight < 25) { this.mediaHeight = 25; }
 
-        // set the image right and bottom
-        this.imageRight = this.imageX + this.imageWidth;
-        this.imageBottom = this.imageY + this.imageHeight;
+        // set the media right and bottom
+        this.mediaRight = this.mediaX + this.mediaWidth;
+        this.mediaBottom = this.mediaY + this.mediaHeight;
 
-        // redraw the image with resizing anchors
+        // redraw the media with resizing anchors
         this.draw(true, true);
         this.drawIcons();
         this.drawText();
 
-      } else if (this.draggingImage) {
+      } else if (this.draggingMedia) {
 
         const mouseX = parseInt(e.pageX - this.getCanvasOffsetX);
         const mouseY = parseInt(e.pageY - this.getCanvasOffsetY);
 
-        // move the image by the amount of the latest drag
+        // move the media by the amount of the latest drag
         let dx = mouseX - this.startX;
         let dy = mouseY - this.startY;
-        this.imageX += dx;
-        this.imageY += dy;
-        this.imageRight += dx;
-        this.imageBottom += dy;
+        this.mediaX += dx;
+        this.mediaY += dy;
+        this.mediaRight += dx;
+        this.mediaBottom += dy;
         // reset the startXY for next time
         this.startX = mouseX;
         this.startY = mouseY;
 
-        // redraw the image with border and the icons
+        // redraw the media with border and the icons
         this.draw(false, true);
         this.drawIcons();
         this.drawText();
@@ -538,8 +546,8 @@ export default {
         this.workingAudio.play();
         //console.log('▶️ emoji clicked!');
       } else if (emoji === '♻') {
-        // Reset image to original position
-        this.resetImage();
+        // Reset media to original position
+        this.resetMedia();
         //console.log('♻ emoji clicked!');
       }
       // Add more cases for other emojis as needed
@@ -575,16 +583,16 @@ export default {
       ctx.textAlign = 'center';
 
       // Calculate the position to center the text
-      const textX = this.textXOffset + this.imageX + (this.imageWidth / 2);
-      const textY = this.textYOffset + this.imageY + (this.imageHeight / 2);
+      const textX = this.textXOffset + this.mediaX + (this.mediaWidth / 2);
+      const textY = this.textYOffset + this.mediaY + (this.mediaHeight / 2);
 
-      // Draw the text in the center of the image
+      // Draw the text in the center of the media
       ctx.fillText(this.exampleText, textX, textY);
     },
 
     drawIcons() {
-      this.iconTop = this.imageBottom + 40; // Adjust icon position (if needed)
-      this.iconLeft = this.workingTwitchEvent.imageX + 40; // Adjust icon position (if needed)
+      this.iconTop = this.mediaBottom + 40; // Adjust icon position (if needed)
+      this.iconLeft = this.workingMediaObject.mediaX + 40; // Adjust icon position (if needed)
       const ctx = this.getCanvasContext;
       // Customize icon styles (font size, color, etc.)
       ctx.font = '26px serif';
@@ -605,69 +613,93 @@ export default {
       // clear the canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // draw the image
-      ctx.drawImage(this.workingImg, this.imageX, this.imageY, this.imageWidth, this.imageHeight);
+      // composite operation to combine background
+      ctx.globalCompositeOperation = "multiply";
+
+
+      // draw the media
+      ctx.drawImage(this.workingMediaElement, this.mediaX, this.mediaY, this.mediaWidth, this.mediaHeight);
 
       // optionally draw the draggable anchors
       if (withAnchors) {
-        this.drawDragAnchor(this.imageX, this.imageY);
-        this.drawDragAnchor(this.imageRight, this.imageY);
-        this.drawDragAnchor(this.imageRight, this.imageBottom);
-        this.drawDragAnchor(this.imageX, this.imageBottom);
+        this.drawDragAnchor(this.mediaX, this.mediaY);
+        this.drawDragAnchor(this.mediaRight, this.mediaY);
+        this.drawDragAnchor(this.mediaRight, this.mediaBottom);
+        this.drawDragAnchor(this.mediaX, this.mediaBottom);
       }
 
       // optionally draw the connecting anchor lines
       if (withBorders) {
         ctx.beginPath();
-        ctx.moveTo(this.imageX, this.imageY);
-        ctx.lineTo(this.imageRight, this.imageY);
-        ctx.lineTo(this.imageRight, this.imageBottom);
-        ctx.lineTo(this.imageX, this.imageBottom);
+        ctx.moveTo(this.mediaX, this.mediaY);
+        ctx.lineTo(this.mediaRight, this.mediaY);
+        ctx.lineTo(this.mediaRight, this.mediaBottom);
+        ctx.lineTo(this.mediaX, this.mediaBottom);
         ctx.closePath();
         ctx.stroke();
       }
+
     },
 
-    async setupImage(eventId) {
-      console.log('setupImage');
-      this.workingTwitchEvent = this.getCheckedTwitchEvents.find(twitchEvent => twitchEvent.id === eventId);
-      this.workingAudio = new Audio(this.workingTwitchEvent.audioFile);
-      this.workingImg = new Image();
+    async setupMedia(eventId) {
+      console.log('setupMedia');
+      this.workingMediaObject = this.getAllCheckedEventsAndWidgets.find(checked => checked.id === eventId);
+      this.workingAudio = new Audio(this.workingMediaObject.audioFile);
 
-      this.workingImg.onload = () => {
-        console.log("image loaded");
-        this.imageWidth = this.workingTwitchEvent.imageWidth || this.origImage.width;
-        this.imageHeight = this.workingTwitchEvent.imageHeight || this.origImage.height;
-        this.imageX = this.workingTwitchEvent.imageX || 50;
-        this.imageY = this.workingTwitchEvent.imageY || 50;
-        this.imageRight = this.imageX + this.imageWidth;
-        this.imageBottom = this.imageY + this.imageHeight;
-        this.textYOffset = this.workingTwitchEvent.textYOffset || 0;
-        this.textXOffset = this.workingTwitchEvent.textXOffset || 0;
-        this.selectedFontSize = this.workingTwitchEvent.textSize || 56;
-        this.selectedFontColor = this.workingTwitchEvent.textColor || '#000000'; // Default color (black)
+      function handleMediaLoad() {
+        console.log("media loaded");
+        this.mediaWidth = this.workingMediaObject.mediaWidth || 300;
+        this.mediaHeight = this.workingMediaObject.mediaHeight || 300;
+        this.mediaX = this.workingMediaObject.mediaX || 50;
+        this.mediaY = this.workingMediaObject.mediaY || 50;
+        this.mediaRight = this.mediaX + this.mediaWidth;
+        this.mediaBottom = this.mediaY + this.mediaHeight;
+        this.textYOffset = this.workingMediaObject.textYOffset || 0;
+        this.textXOffset = this.workingMediaObject.textXOffset || 0;
+        this.selectedFontSize = this.workingMediaObject.textSize || 56;
+        this.selectedFontColor = this.workingMediaObject.textColor || '#000000'; // Default color (black)
         this.drawAll();
-      };
-      this.workingImg.src = this.workingTwitchEvent.imageFile;
+      }
+
+      if (this.workingMediaObject.mediaType === 'img') {
+        this.workingMediaElement = new Image();
+        this.workingMediaElement.onload = handleMediaLoad.bind(this);
+        this.workingMediaElement.src = this.workingMediaObject.mediaFile;
+      }
+      else if (this.workingMediaObject.mediaType === "video") {
+        this.workingMediaElement = document.createElement('video');
+        this.workingMediaElement.loop = true;
+        this.workingMediaElement.controls = true;
+        this.workingMediaElement.type = "video/webm";
+        this.workingMediaElement.addEventListener('loadedmetadata', handleMediaLoad.bind(this));
+        this.workingMediaElement.src = this.workingMediaObject.mediaFile;
+        this.workingMediaElement.play(); // Add play() method call
+      }
+      else {
+        // Handle unsupported media types
+        console.error('Unsupported media type:', this.workingMediaObject.mediaType);
+      }
+
+
 
       this.removeCanvasEventListeners();
       this.addCanvasEventListeners();
-      this.imageSetup = true;
+      this.mediaSetup = true;
     },
 
-    resetImage() {
-      console.log('resetImage');
-      this.imageWidth = 700;
-      this.imageHeight = 700;
-      this.imageX = 50;
-      this.imageY = 50;
-      this.imageRight = this.imageX + this.imageWidth;
-      this.imageBottom = this.imageY + this.imageHeight;
+    resetMedia() {
+      console.log('resetMedia');
+      this.mediaWidth = 700;
+      this.mediaHeight = 700;
+      this.mediaX = 50;
+      this.mediaY = 50;
+      this.mediaRight = this.mediaX + this.mediaWidth;
+      this.mediaBottom = this.mediaY + this.mediaHeight;
       this.textYOffset = 0;
       this.textXOffset = 0;
       this.selectedFontSize = 56;
       this.selectedFontColor = '#000000'; // Default color (black)
-      this.draggingImage = false;
+      this.draggingMedia = false;
       this.drawAll();
     }
   },
